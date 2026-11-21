@@ -47,6 +47,11 @@ export const saveDay = (tripId, id, body) =>
   id ? setDoc(doc(sub(tripId, "days"), id), body) : addDoc(sub(tripId, "days"), body);
 export const deleteDay = (tripId, id) => deleteDoc(doc(sub(tripId, "days"), id));
 
+export const saveChecklistItem = (tripId, id, body) =>
+  id ? setDoc(doc(sub(tripId, "checklist"), id), body) : addDoc(sub(tripId, "checklist"), body);
+export const deleteChecklistItem = (tripId, id) => deleteDoc(doc(sub(tripId, "checklist"), id));
+export const saveChecklist = (tripId, checklist) => updateTrip(tripId, { checklist });
+
 /** First visit to a built-in trip: copy the template (trip, days, seed expenses) in one go. */
 export async function seedTrip(t) {
   const b = writeBatch(fs);

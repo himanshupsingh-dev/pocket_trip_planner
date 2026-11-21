@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Home from "./pages/Home.jsx";
 import TripPage from "./pages/TripPage.jsx";
 
-const VIEWS = new Set(["plan", "expenses", "budget", "settle"]);
+const VIEWS = new Set(["plan", "checklist", "expenses", "budget", "settle"]);
 
 // Routes: #/                     → home (your trips + New trip)
 //         #/<tripId>/<view>      → one trip (view = plan | expenses | budget | settle)

@@ -33,6 +33,14 @@ service cloud.firestore {
                               && request.resource.data.groups is list;
         allow delete: if true;
       }
+
+      match /checklist/{id} {
+        allow read: if true;
+        allow create, update: if request.resource.data.text is string
+                              && request.resource.data.text.size() > 0
+                              && request.resource.data.text.size() <= 200;
+        allow delete: if true;
+      }
     }
 
     // Everything else is locked.
