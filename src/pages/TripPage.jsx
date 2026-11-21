@@ -131,7 +131,9 @@ export default function TripPage({ tripId, view }) {
         <h1>{trip.title} {trip.emoji}</h1>
         {trip.startDate && <p>{fmtRange(trip.startDate, trip.endDate)}</p>}
         <div className="heroacts">
-          {meValid && <button className="hbtn" onClick={() => setSheet({ type: "who" })}>👤 {nameOf(me)} · change</button>}
+          <button className="hbtn" onClick={() => setSheet({ type: "who" })}>
+            👤 {meValid ? `${nameOf(me)} · change` : "Select your name"}
+          </button>
           {canEdit && <button className="hbtn" onClick={() => setSheet({ type: "share" })}>🔗 Invite</button>}
           {canEdit && <button className="hbtn" onClick={() => setSheet({ type: "trip" })}>⚙️ Edit trip</button>}
         </div>
@@ -155,7 +157,8 @@ export default function TripPage({ tripId, view }) {
         )}
         {view === "settle" && (
           <Settle
-            trip={trip} members={members} stats={stats} nameOf={nameOf}
+            trip={trip} members={members} stats={stats} expenses={expenses} nameOf={nameOf} me={me}
+            onSelectMe={() => setSheet({ type: "who" })}
             canEdit={canEdit} onEditTrip={() => setSheet({ type: "trip" })}
           />
         )}

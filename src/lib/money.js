@@ -42,23 +42,46 @@ export function compute(members, expenses) {
   return { paid, share, bal, total, unpaidTotal, byCat, byPlace };
 }
 
-/** Greedy settle-up: fewest transfers from debtors to creditors. Returns [from, to, amount][]. */
-export function settle(members, bal) {
-  const cr = [], dr = [];
-  members.forEach((m) => {
-    const b = Math.round(bal[m.id] || 0);
-    if (b > 0) cr.push([m.id, b]); else if (b < 0) dr.push([m.id, -b]);
+/** Direct pairwise settle-up: net debts between pairs who actually shared expenses. Returns [from, to, amount][]. */
+export function settle(members, expensesOrBal) {
+  if (!Array.isArray(expensesOrBal)) return [];
+  const expenses = expensesOrBal;
+  const ids = members.map((m) => m.id);
+  const memberSet = new Set(ids);
+  const debt = {};
+  ids.forEach((i) => {
+    debt[i] = {};
+    ids.forEach((j) => { debt[i][j] = 0; });
   });
-  cr.sort((a, b) => b[1] - a[1]);
-  dr.sort((a, b) => b[1] - a[1]);
-  const out = [];
-  let i = 0, j = 0;
-  while (i < dr.length && j < cr.length) {
-    const x = Math.min(dr[i][1], cr[j][1]);
-    if (x > 0) out.push([dr[i][0], cr[j][0], x]);
-    dr[i][1] -= x; cr[j][1] -= x;
-    if (dr[i][1] <= 0) i++;
-    if (cr[j][1] <= 0) j++;
+
+  for (const e of expenses) {
+    const a = Number(e.amount) || 0;
+    if (a <= 0) continue;
+    const payer = e.paidBy;
+    if (!payer || !memberSet.has(payer)) continue;
+    let split = (Array.isArray(e.split) ? e.split : ids).filter((id) => memberSet.has(id));
+    if (!split.length) split = ids;
+    const shareAmount = a / split.length;
+    for (const borrower of split) {
+      if (borrower !== payer) {
+        debt[borrower][payer] = (debt[borrower][payer] || 0) + shareAmount;
+      }
+    }
   }
+
+  const out = [];
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      const idA = ids[i], idB = ids[j];
+      const diff = (debt[idA][idB] || 0) - (debt[idB][idA] || 0);
+      const rounded = Math.round(diff);
+      if (rounded > 0) {
+        out.push([idA, idB, rounded]);
+      } else if (rounded < 0) {
+        out.push([idB, idA, -rounded]);
+      }
+    }
+  }
+  out.sort((a, b) => b[2] - a[2]);
   return out;
 }
