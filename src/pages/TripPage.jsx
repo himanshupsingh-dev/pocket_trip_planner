@@ -18,24 +18,31 @@ import BudgetSheet from "../components/BudgetSheet.jsx";
 
 const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) + "% of budget" : "");
 
-function BudgetTiles({ trip, sum }) {
+/**
+ * Budget / Actual / Remaining for the active user's categories (group amounts; whole trip when
+ * nobody is selected or the trip only has a trip-wide budget), plus the user's own share.
+ */
+function BudgetTiles({ trip, sum, share }) {
   const over = sum.budget > 0 && sum.remaining < 0;
   let remainingNote = "";
   if (over) remainingNote = "⚠ over budget";
   else if (sum.budget) remainingNote = "left to spend";
-  const estNote = sum.budget > 0 && sum.estimated === sum.budget ? "sum of categories" : pct(sum.estimated, sum.budget);
+  let budgetNote = "tap to set";
+  if (sum.budget) budgetNote = sum.scope === "mine" ? "your categories" : "whole trip";
   const used = sum.budget > 0 ? Math.min(100, (sum.actual / sum.budget) * 100) : 0;
   return (
     <a className="stats" href={`#/${trip.id}/budget`} aria-label="Open budget">
       <div className="stat"><span>Budget</span><b>{sum.budget ? inr(sum.budget) : "Not set"}</b>
-        <small>{sum.budget ? "total for the trip" : "tap to set"}</small></div>
-      <div className="stat"><span>Estimated</span><b>{inr(sum.estimated)}</b><small>{estNote}</small></div>
+        <small>{budgetNote}</small></div>
       <div className="stat"><span>Actual</span><b>{inr(sum.actual)}</b><small>{pct(sum.actual, sum.budget) || "spent so far"}</small>
         {sum.budget > 0 && <i className={`mini ${over ? "over" : ""}`} aria-hidden="true"><i style={{ width: used + "%" }} /></i>}
       </div>
       <div className={`stat ${over ? "neg" : ""}`}><span>Remaining</span>
         <b>{sum.budget ? inr(sum.remaining) : "—"}</b>
         <small>{remainingNote}</small></div>
+      <div className="stat"><span>Your share</span>
+        <b>{share == null ? "—" : inr(share)}</b>
+        <small>{share == null ? "select your name" : "what it's cost you"}</small></div>
     </a>
   );
 }
@@ -142,6 +149,8 @@ export default function TripPage({ tripId, view }) {
     () => (meValid ? sharedCategories(me, members, expenses) : null),
     [meValid, me, members, expenses]
   );
+  // the tiles and "Budget used" card: group totals for those categories (whole trip when nobody is selected)
+  const mySum = useMemo(() => (trip ? budgetSummary(trip, stats, myCats) : null), [trip, stats, myCats]);
 
   if (!trip) {
     if (tripState === "setup") return <Message>⚙️ Setup needed: paste your Firebase config into <b>src/firebase-config.js</b>.</Message>;
@@ -231,7 +240,7 @@ export default function TripPage({ tripId, view }) {
       </div>
 
       <div className={`wrap ${view === "expenses" ? "hasfab" : ""}`}>
-        <BudgetTiles trip={trip} sum={sum} />
+        <BudgetTiles trip={trip} sum={mySum} share={meValid ? stats.share[me] || 0 : null} />
 
         {view === "plan" && (
           <Plan trip={trip} days={days} canEdit={canEdit}
@@ -244,7 +253,7 @@ export default function TripPage({ tripId, view }) {
           />
         )}
         {view === "budget" && (
-          <Budget sum={sum} myCats={myCats} onSelectMe={openWho} canEdit={canEdit} onEdit={() => setSheet({ type: "budget" })} />
+          <Budget sum={sum} mySum={mySum} myCats={myCats} onSelectMe={openWho} canEdit={canEdit} onEdit={() => setSheet({ type: "budget" })} />
         )}
         {view === "settle" && (
           <Settle
