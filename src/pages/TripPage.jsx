@@ -249,7 +249,7 @@ export default function TripPage({ tripId, view }) {
         {view === "expenses" && (
           <Expenses
             trip={trip} members={members} expenses={expenses} status={status} nameOf={nameOf} me={me}
-            canEdit={canEdit} onAdd={() => openExpense(null)} onOpen={openExpense}
+            canEdit={canEdit} onAdd={() => openExpense(null)} onOpen={openExpense} onSelectMe={openWho}
           />
         )}
         {view === "budget" && (

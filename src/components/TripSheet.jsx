@@ -3,6 +3,7 @@ import Sheet from "./Sheet.jsx";
 import { createTrip, updateTrip } from "../lib/db.js";
 import { DEFAULT_CATEGORIES, newTripId, newMemberId } from "../trips/index.js";
 import { getUserName } from "../lib/device.js";
+import { round2 } from "../lib/money.js";
 
 const lines = (s) => s.split("\n").map((x) => x.trim()).filter(Boolean);
 
@@ -86,7 +87,7 @@ export default function TripSheet({ trip, expenses = [], onClose, onSaved }) {
     if (list.some((m) => !m.name && existing(m.id))) return setErr("Every member needs a name.");
     const named = list.filter((m) => m.name);
     if (!named.length) return setErr("Add at least one member.");
-    const b = Number(budget) || 0;
+    const b = round2(budget);
     if (b < 0) return setErr("Budget can't be negative.");
 
     const placeList = lines(places);
@@ -152,7 +153,7 @@ export default function TripSheet({ trip, expenses = [], onClose, onSaved }) {
       {isNew && (
         <div className="f">
           <label htmlFor="t-budget">Total budget (₹)</label>
-          <input id="t-budget" type="number" inputMode="numeric" min="0" step="1" value={budget}
+          <input id="t-budget" type="number" inputMode="decimal" min="0" step="0.01" value={budget}
             placeholder="Optional — you can set it later" onChange={(e) => setBudget(e.target.value)} />
         </div>
       )}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { inr } from "../lib/money.js";
+import { inr, round2, toPaise, isPartOf, splitMembers } from "../lib/money.js";
 import { fmtDay, dayCount } from "../lib/dates.js";
 
 function statusMsg(status, hasAny) {
@@ -29,27 +29,30 @@ function groupByDate(list) {
       groups.push(g);
     }
     g.items.push(e);
-    g.total += Number(e.amount) || 0;
+    g.total = round2(g.total + round2(e.amount));
   }
   return groups;
 }
 
-export default function Expenses({ trip, members, expenses, status, nameOf, me, canEdit, onAdd, onOpen }) {
+/** Lists only the expenses the active user is part of: they paid for it or are in its split. */
+export default function Expenses({ trip, members, expenses, status, nameOf, me, canEdit, onAdd, onOpen, onSelectMe }) {
   const CATS = trip.categories;
   const [who, setWho] = useState("");
   const [cat, setCat] = useState("");
+  const meValid = !!me && members.some((m) => m.id === me);
+  const mine = meValid ? expenses.filter((e) => isPartOf(e, me, members)) : [];
 
   // Only offer filters that match something (plus whatever is selected right now).
-  const payers = members.filter((m) => m.id === who || expenses.some((e) => e.paidBy === m.id));
-  const used = new Set(expenses.map((e) => e.category || "Other"));
+  const payers = members.filter((m) => m.id === who || mine.some((e) => e.paidBy === m.id));
+  const used = new Set(mine.map((e) => e.category || "Other"));
   const cats = Object.keys(CATS).filter((k) => k === cat || used.has(k));
 
-  let list = [...expenses].sort(
+  let list = [...mine].sort(
     (a, b) => (a.date || "9999").localeCompare(b.date || "9999") || (a.createdAt || 0) - (b.createdAt || 0)
   );
   if (who) list = list.filter((e) => e.paidBy === who);
   if (cat) list = list.filter((e) => (e.category || "Other") === cat);
-  const shownTotal = list.reduce((a, e) => a + (Number(e.amount) || 0), 0);
+  const shownTotal = list.reduce((a, e) => a + toPaise(e.amount), 0) / 100;
   const filtered = !!(who || cat);
 
   const dayLabel = (date) => {
@@ -60,13 +63,21 @@ export default function Expenses({ trip, members, expenses, status, nameOf, me, 
   const msg = statusMsg(status, expenses.length > 0);
   const label = (id) => (id === me ? "you" : nameOf(id));
   let empty = "";
-  if (!msg && list.length === 0) {
-    empty = expenses.length ? "Nothing matches this filter." : "No expenses yet — tap “＋ Add expense” to add the first one.";
+  if (!msg && meValid && list.length === 0) {
+    if (mine.length) empty = "Nothing matches this filter.";
+    else if (expenses.length) empty = "You aren't part of any expenses yet — tap “＋ Add expense” to add one.";
+    else empty = "No expenses yet — tap “＋ Add expense” to add the first one.";
   }
 
   return (
     <section>
-      {!msg && expenses.length > 0 && (
+      {!msg && !meValid && (
+        <div className="card empty">
+          <p className="note">Select who you are to see the expenses you're part of.</p>
+          {onSelectMe && <button type="button" className="btn ghost small" onClick={onSelectMe}>👤 Select your name</button>}
+        </div>
+      )}
+      {!msg && mine.length > 0 && (
         <div className="filters">
           {payers.length > 1 && (
             <div className="chiprow" role="group" aria-label="Filter by who paid">
@@ -95,10 +106,10 @@ export default function Expenses({ trip, members, expenses, status, nameOf, me, 
 
       {msg && <div className="card">{msg}</div>}
       {empty && <div className="card empty">{empty}</div>}
-      {!msg && !empty && (
+      {!msg && meValid && !empty && (
         <>
           <div className="listsum">
-            <span role="status">{list.length} {list.length === 1 ? "expense" : "expenses"} · <b>{inr(shownTotal)}</b></span>
+            <span role="status">{list.length} {list.length === 1 ? "expense" : "expenses"} you're part of · <b>{inr(shownTotal)}</b></span>
             {filtered && (
               <button type="button" className="linkbtn" onClick={() => { setWho(""); setCat(""); }}>Clear filters</button>
             )}
@@ -112,7 +123,7 @@ export default function Expenses({ trip, members, expenses, status, nameOf, me, 
               <div className="card list">
                 {g.items.map((e) => {
                   const a = Number(e.amount) || 0;
-                  const n = (Array.isArray(e.split) ? e.split.length : members.length) || members.length;
+                  const n = splitMembers(e, members).length;
                   return (
                     <button type="button" key={e._id} className={`exp ${!a || !e.paidBy ? "pending" : ""}`} onClick={() => onOpen(e)}>
                       <span className="ic" aria-hidden="true">{CATS[e.category] || "📌"}</span>

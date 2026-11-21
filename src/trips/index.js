@@ -1,6 +1,7 @@
 // Trips live in the database and are created in the app (＋ New trip).
 // Built-in templates below are copied into the database the first time someone opens them.
 import kerala2026 from "./kerala-2026.js";
+import { round2, toPaise } from "../lib/money.js";
 
 const TEMPLATES = [kerala2026];
 
@@ -24,9 +25,9 @@ export function normalizeTrip(id, d = {}) {
   const cats = Array.isArray(d.categories) && d.categories.length ? d.categories : DEFAULT_CATEGORIES;
   const places = Array.isArray(d.places) && d.places.length ? d.places.map(String) : ["On the way"];
   const est = d.estimates && typeof d.estimates === "object" ? d.estimates : {};
-  const cleanEstimates = Object.fromEntries(Object.entries(est).map(([k, v]) => [k, Math.max(0, Number(v) || 0)]));
-  const estimatedSum = Object.values(cleanEstimates).reduce((a, b) => a + b, 0);
-  const budget = estimatedSum > 0 ? estimatedSum : Math.max(0, Number(d.budget) || 0);
+  const cleanEstimates = Object.fromEntries(Object.entries(est).map(([k, v]) => [k, Math.max(0, round2(v))]));
+  const estimatedSumP = Object.values(cleanEstimates).reduce((a, b) => a + toPaise(b), 0);
+  const budget = estimatedSumP > 0 ? estimatedSumP / 100 : Math.max(0, round2(d.budget));
   return {
     id,
     title: String(d.title || "Untitled trip"),
