@@ -26,10 +26,13 @@ export default function ExpenseSheet({ trip, exp, me, members, nameOf, onClose }
   }, [armed]);
 
   // keep the original payer when editing; unclaimed rows (e.g. hotels) become yours
+  const isNew = !exp;
+  const canModify = isNew || !exp.paidBy || exp.paidBy === me;
   const payer = exp?.paidBy || me;
   const everyone = split.size === allIds.length;
 
   const toggle = (id) => {
+    if (!canModify) return;
     const s = new Set(split);
     s.has(id) ? s.delete(id) : s.add(id);
     setSplit(s);
@@ -37,6 +40,7 @@ export default function ExpenseSheet({ trip, exp, me, members, nameOf, onClose }
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!canModify) return setErr(`Only ${nameOf(exp.paidBy)} can edit this expense.`);
     const d = desc.trim(), a = Number(amount) || 0;
     if (!d) return setErr("Add a short description.");
     if (a < 0) return setErr("Amount can't be negative.");
@@ -57,39 +61,45 @@ export default function ExpenseSheet({ trip, exp, me, members, nameOf, onClose }
   };
 
   const remove = async () => {
+    if (!canModify) return setErr(`Only ${nameOf(exp?.paidBy)} can delete this expense.`);
     if (!armed) return setArmed(true);
     try { await deleteExpense(trip.id, exp._id); onClose(); }
     catch { setErr("Couldn't delete — please try again."); }
   };
 
   return (
-    <Sheet as="form" onClose={onClose} onSubmit={submit}>
-      <h2>{exp ? "Edit expense" : "Add expense"}</h2>
+    <Sheet as="form" onClose={onClose} onSubmit={canModify ? submit : (e) => { e.preventDefault(); onClose(); }}>
+      <h2>{canModify ? (exp ? "Edit expense" : "Add expense") : "Expense details"}</h2>
+      {!canModify && (
+        <p className="note" style={{ margin: "-6px 0 12px" }}>
+          🔒 Paid by <b>{nameOf(exp.paidBy)}</b>. Only {nameOf(exp.paidBy)} can edit or delete this expense.
+        </p>
+      )}
       <div className="f">
         <label>What was it for?</label>
-        <input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="e.g. Dinner, fuel, tickets" maxLength={120} />
+        <input value={desc} onChange={(e) => setDesc(e.target.value)} disabled={!canModify} placeholder="e.g. Dinner, fuel, tickets" maxLength={120} />
       </div>
       <div className="two">
         <div className="f">
           <label>Amount (₹)</label>
-          <input type="number" inputMode="decimal" min="0" step="1" placeholder="0"
+          <input type="number" inputMode="decimal" min="0" step="1" placeholder="0" disabled={!canModify}
             value={amount} onChange={(e) => setAmount(e.target.value)} />
         </div>
         <div className="f">
           <label>Date</label>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={!canModify} />
         </div>
       </div>
       <div className="two">
         <div className="f">
           <label>Category</label>
-          <select value={category} onChange={(e) => setCategory(e.target.value)}>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} disabled={!canModify}>
             {Object.keys(CATS).map((k) => <option key={k}>{k}</option>)}
           </select>
         </div>
         <div className="f">
           <label>Place</label>
-          <select value={place} onChange={(e) => setPlace(e.target.value)}>
+          <select value={place} onChange={(e) => setPlace(e.target.value)} disabled={!canModify}>
             {PLACES.map((p) => <option key={p}>{p}</option>)}
           </select>
         </div>
@@ -102,9 +112,12 @@ export default function ExpenseSheet({ trip, exp, me, members, nameOf, onClose }
         <label>Split between</label>
         <div className="chips">
           <span className={`chip ${everyone ? "on" : ""}`}
-            onClick={() => setSplit(new Set(everyone ? [] : allIds))}>Everyone</span>
+            onClick={canModify ? () => setSplit(new Set(everyone ? [] : allIds)) : undefined}
+            style={!canModify ? { cursor: "default", opacity: everyone ? 0.9 : 0.45 } : undefined}>Everyone</span>
           {members.map((m) => (
-            <span key={m.id} className={`chip ${split.has(m.id) ? "on" : ""}`} onClick={() => toggle(m.id)}>
+            <span key={m.id} className={`chip ${split.has(m.id) ? "on" : ""}`}
+              onClick={canModify ? () => toggle(m.id) : undefined}
+              style={!canModify ? { cursor: "default", opacity: split.has(m.id) ? 0.9 : 0.45 } : undefined}>
               {m.name}
             </span>
           ))}
@@ -112,10 +125,16 @@ export default function ExpenseSheet({ trip, exp, me, members, nameOf, onClose }
       </div>
       <div className="err">{err}</div>
       <div className="actions">
-        <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
-        <button type="submit" className="btn" disabled={saving}>{saving ? "Saving…" : "Save"}</button>
+        {canModify ? (
+          <>
+            <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn" disabled={saving}>{saving ? "Saving…" : "Save"}</button>
+          </>
+        ) : (
+          <button type="button" className="btn wide" onClick={onClose}>Close</button>
+        )}
       </div>
-      {exp && (
+      {exp && canModify && (
         <div className="actions">
           <button type="button" className="btn danger" onClick={remove}>
             {armed ? "Tap again to delete" : "Delete expense"}
