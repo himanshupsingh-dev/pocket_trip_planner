@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
 import Sheet from "./Sheet.jsx";
 import { saveExpense, deleteExpense } from "../lib/db.js";
-
-const today = () => new Date().toISOString().slice(0, 10);
+import { todayISO } from "../lib/dates.js";
 
 export default function ExpenseSheet({ trip, exp, me, members, nameOf, onClose }) {
   const CATS = trip.categories, PLACES = trip.places;
   const allIds = members.map((m) => m.id);
   const [desc, setDesc] = useState(exp?.desc || "");
   const [amount, setAmount] = useState(exp?.amount || "");
-  const [date, setDate] = useState(exp?.date || today());
+  const [date, setDate] = useState(exp?.date || todayISO());
   const [category, setCategory] = useState(exp?.category || ("Food" in CATS ? "Food" : Object.keys(CATS)[0]));
   const [place, setPlace] = useState(exp?.place || trip.defaultPlace);
   // unfilled rows (e.g. seeded hotels) default to everyone currently on the trip
@@ -67,62 +66,62 @@ export default function ExpenseSheet({ trip, exp, me, members, nameOf, onClose }
     catch { setErr("Couldn't delete — please try again."); }
   };
 
+  let title = "Expense details";
+  if (canModify) title = exp ? "Edit expense" : "Add expense";
+
   return (
-    <Sheet as="form" onClose={onClose} onSubmit={canModify ? submit : (e) => { e.preventDefault(); onClose(); }}>
-      <h2>{canModify ? (exp ? "Edit expense" : "Add expense") : "Expense details"}</h2>
+    <Sheet as="form" title={title} onClose={onClose} onSubmit={canModify ? submit : (e) => { e.preventDefault(); onClose(); }}>
       {!canModify && (
-        <p className="note" style={{ margin: "-6px 0 12px" }}>
+        <p className="note lead">
           🔒 Paid by <b>{nameOf(exp.paidBy)}</b>. Only {nameOf(exp.paidBy)} can edit or delete this expense.
         </p>
       )}
       <div className="f">
-        <label>What was it for?</label>
-        <input value={desc} onChange={(e) => setDesc(e.target.value)} disabled={!canModify} placeholder="e.g. Dinner, fuel, tickets" maxLength={120} />
+        <label htmlFor="e-desc">What was it for?</label>
+        <input id="e-desc" value={desc} onChange={(e) => setDesc(e.target.value)} disabled={!canModify} placeholder="e.g. Dinner, fuel, tickets" maxLength={120} />
       </div>
       <div className="two">
         <div className="f">
-          <label>Amount (₹)</label>
-          <input type="number" inputMode="decimal" min="0" step="1" placeholder="0" disabled={!canModify}
+          <label htmlFor="e-amount">Amount (₹)</label>
+          <input id="e-amount" type="number" inputMode="decimal" min="0" step="1" placeholder="0" disabled={!canModify}
             value={amount} onChange={(e) => setAmount(e.target.value)} />
         </div>
         <div className="f">
-          <label>Date</label>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={!canModify} />
+          <label htmlFor="e-date">Date</label>
+          <input id="e-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={!canModify} />
         </div>
       </div>
       <div className="two">
         <div className="f">
-          <label>Category</label>
-          <select value={category} onChange={(e) => setCategory(e.target.value)} disabled={!canModify}>
+          <label htmlFor="e-cat">Category</label>
+          <select id="e-cat" value={category} onChange={(e) => setCategory(e.target.value)} disabled={!canModify}>
             {Object.keys(CATS).map((k) => <option key={k}>{k}</option>)}
           </select>
         </div>
         <div className="f">
-          <label>Place</label>
-          <select value={place} onChange={(e) => setPlace(e.target.value)} disabled={!canModify}>
+          <label htmlFor="e-place">Place</label>
+          <select id="e-place" value={place} onChange={(e) => setPlace(e.target.value)} disabled={!canModify}>
             {PLACES.map((p) => <option key={p}>{p}</option>)}
           </select>
         </div>
       </div>
       <div className="f">
-        <label>Paid by</label>
+        <span className="flabel">Paid by</span>
         <div className="paidtxt">{payer === me ? `You (${nameOf(me)})` : nameOf(payer)}</div>
       </div>
-      <div className="f">
-        <label>Split between</label>
+      <fieldset className="f">
+        <legend>Split between</legend>
         <div className="chips">
-          <span className={`chip ${everyone ? "on" : ""}`}
-            onClick={canModify ? () => setSplit(new Set(everyone ? [] : allIds)) : undefined}
-            style={!canModify ? { cursor: "default", opacity: everyone ? 0.9 : 0.45 } : undefined}>Everyone</span>
+          <button type="button" className={`chip ${everyone ? "on" : ""}`} aria-pressed={everyone} disabled={!canModify}
+            onClick={() => setSplit(new Set(everyone ? [] : allIds))}>Everyone</button>
           {members.map((m) => (
-            <span key={m.id} className={`chip ${split.has(m.id) ? "on" : ""}`}
-              onClick={canModify ? () => toggle(m.id) : undefined}
-              style={!canModify ? { cursor: "default", opacity: split.has(m.id) ? 0.9 : 0.45 } : undefined}>
+            <button type="button" key={m.id} className={`chip ${split.has(m.id) ? "on" : ""}`} aria-pressed={split.has(m.id)}
+              disabled={!canModify} onClick={() => toggle(m.id)}>
               {m.name}
-            </span>
+            </button>
           ))}
         </div>
-      </div>
+      </fieldset>
       <div className="err">{err}</div>
       <div className="actions">
         {canModify ? (

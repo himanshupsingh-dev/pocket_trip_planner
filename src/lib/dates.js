@@ -20,3 +20,21 @@ export function fmtRange(a, b) {
 }
 
 export const addDays = (iso, n) => new Date(utc(iso) + n * 864e5).toISOString().slice(0, 10);
+
+/** Today on this device as "YYYY-MM-DD" — local time, so it doesn't lag a day behind in India before 5:30 am. */
+export function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Where a trip stands relative to today: { cls, text }, or null when it has no start date. */
+export function tripStatus(start, end, today = todayISO()) {
+  if (!start) return null;
+  const last = end && end >= start ? end : start;
+  if (today < start) {
+    const n = dayCount(today, start) - 1;
+    return { cls: "soon", text: n === 1 ? "Starts tomorrow" : `Starts in ${n} days` };
+  }
+  if (today <= last) return { cls: "now", text: `On now · Day ${dayCount(start, today)}` };
+  return { cls: "done", text: "Finished" };
+}
