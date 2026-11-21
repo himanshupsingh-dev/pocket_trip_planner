@@ -6,13 +6,14 @@ export const inr = (n) => {
 /** Budget vs estimated vs actual, overall and per category (largest first). */
 export function budgetSummary(trip, stats) {
   const estimated = Object.keys(trip.categories).reduce((a, k) => a + (trip.estimates[k] || 0), 0);
+  const budget = estimated > 0 ? estimated : (trip.budget || 0);
   const actual = stats.total;
   const names = [...new Set([...Object.keys(trip.categories), ...Object.keys(stats.byCat)])];
   const rows = names
     .map((name) => ({ name, icon: trip.categories[name] || "📌", est: trip.estimates[name] || 0, act: stats.byCat[name] || 0 }))
     .filter((r) => r.est > 0 || r.act > 0)
     .sort((a, b) => Math.max(b.est, b.act) - Math.max(a.est, a.act));
-  return { budget: trip.budget, estimated, actual, remaining: trip.budget - actual, rows };
+  return { budget, estimated, actual, remaining: budget - actual, rows };
 }
 
 /** Totals, per-person paid/share/balance. Expenses without a valid payer are skipped. */

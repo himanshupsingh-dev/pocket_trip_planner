@@ -24,6 +24,9 @@ export function normalizeTrip(id, d = {}) {
   const cats = Array.isArray(d.categories) && d.categories.length ? d.categories : DEFAULT_CATEGORIES;
   const places = Array.isArray(d.places) && d.places.length ? d.places.map(String) : ["On the way"];
   const est = d.estimates && typeof d.estimates === "object" ? d.estimates : {};
+  const cleanEstimates = Object.fromEntries(Object.entries(est).map(([k, v]) => [k, Math.max(0, Number(v) || 0)]));
+  const estimatedSum = Object.values(cleanEstimates).reduce((a, b) => a + b, 0);
+  const budget = estimatedSum > 0 ? estimatedSum : Math.max(0, Number(d.budget) || 0);
   return {
     id,
     title: String(d.title || "Untitled trip"),
@@ -31,8 +34,8 @@ export function normalizeTrip(id, d = {}) {
     subtitle: String(d.subtitle || ""),
     startDate: d.startDate || "",
     endDate: d.endDate || "",
-    budget: Math.max(0, Number(d.budget) || 0),
-    estimates: Object.fromEntries(Object.entries(est).map(([k, v]) => [k, Math.max(0, Number(v) || 0)])),
+    budget,
+    estimates: cleanEstimates,
     members: cleanMembers(d.members),
     categories: Object.fromEntries(cats.map((c) => [String(c.name), String(c.icon || "📌")])),
     places,
