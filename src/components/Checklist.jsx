@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { saveChecklistItem, deleteChecklistItem, saveChecklist } from "../lib/db.js";
-import { fmtDay, todayISO, addDays } from "../lib/dates.js";
+import { fmtDay, todayISO, addDays, dayCount } from "../lib/dates.js";
 
 export default function Checklist({ trip, items = [], canEdit = true }) {
   const today = todayISO();
@@ -233,6 +233,8 @@ export default function Checklist({ trip, items = [], canEdit = true }) {
               const isPast = !!item.date && item.date < today;
               const isToday = !!item.date && item.date === today;
               const isTomorrow = !!item.date && item.date === tomorrow;
+              // further out than tomorrow: whole days from today (always 2+)
+              const daysLeft = item.date && item.date > tomorrow ? dayCount(today, item.date) - 1 : 0;
 
               if (isEditing) {
                 return (
@@ -304,6 +306,7 @@ export default function Checklist({ trip, items = [], canEdit = true }) {
                       {!item.done && isPast && <span className="pill bad">⚠️ Overdue</span>}
                       {!item.done && isToday && <span className="pill today">Today</span>}
                       {!item.done && isTomorrow && <span className="pill soon">Tomorrow</span>}
+                      {!item.done && daysLeft > 0 && <span className="pill left">{daysLeft} days remaining</span>}
                     </div>
                   </div>
                   <div className="chk-actions">
