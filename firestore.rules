@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function validTrip(d) {
+      return d.title is string && d.title.size() > 0 && d.title.size() <= 80
+          && d.members is list && d.members.size() >= 1 && d.members.size() <= 50
+          && (!('budget' in d) || (d.budget is number && d.budget >= 0))
+          && (!('estimates' in d) || d.estimates is map);
+    }
+
+    // Private-link model: a trip opens only for someone who knows its id (it's in the
+    // shared link). Trips can't be listed or searched, and can't be deleted from the app.
+    match /trips/{tripId} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if validTrip(request.resource.data);
+      allow delete: if false;
+
+      match /expenses/{id} {
+        allow read: if true;
+        allow create, update: if request.resource.data.amount is number
+                              && request.resource.data.amount >= 0
+                              && request.resource.data.desc is string
+                              && request.resource.data.desc.size() <= 120;
+        allow delete: if true;
+      }
+
+      match /days/{id} {
+        allow read: if true;
+        allow create, update: if request.resource.data.title is string
+                              && request.resource.data.title.size() <= 120
+                              && request.resource.data.groups is list;
+        allow delete: if true;
+      }
+    }
+
+    // Everything else is locked.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
