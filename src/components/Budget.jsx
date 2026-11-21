@@ -1,4 +1,5 @@
 import { inr } from "../lib/money.js";
+import BudgetAreaChart from "./BudgetAreaChart.jsx";
 
 // Meter on a shared scale: the light track is the estimate (or budget), the solid
 // fill is what was actually spent. Past the estimate the fill turns red and a tick
@@ -25,8 +26,11 @@ function rowStatus(est, act, what = "estimate") {
   return { cls: "", text: `${Math.round((act / est) * 100)}% used · ${inr(est - act)} left` };
 }
 
-function Row({ r, scale }) {
-  const s = rowStatus(r.est, r.act);
+const statusOf = (r) => rowStatus(r.est, r.act);
+
+// One category in words, under the chart: the chart's table view.
+function Row({ r }) {
+  const s = statusOf(r);
   const label = `${r.name}: estimated ${r.est ? inr(r.est) : "nothing"}, spent ${inr(r.act)}. ${s.text.replace("⚠ ", "")}`;
   return (
     <div className="brow" title={label} aria-label={label} role="group">
@@ -34,15 +38,29 @@ function Row({ r, scale }) {
         <span className="n">{r.icon} {r.name}</span>
         <span className="v">{inr(r.act)} <small>/ {r.est ? inr(r.est) : "—"}</small></span>
       </div>
-      <Meter est={r.est} act={r.act} scale={scale} />
       <div className={`bsub ${s.cls}`}>{s.text}</div>
     </div>
   );
 }
 
-export default function Budget({ sum, canEdit, onEdit }) {
-  const { budget, estimated, actual, rows } = sum;
-  const scale = Math.max(1, ...rows.map((r) => Math.max(r.est, r.act)));
+// Legend keys mirror the marks: a wash with its line for the two areas, the marker shape for the two statuses.
+const AreaKey = ({ k }) => <i className={`sw area ${k}`} />;
+const ShapeKey = ({ k }) => (
+  <svg className="swshape" viewBox="0 0 12 12" aria-hidden="true">
+    {k === "over" ? <path className="ch-dot over" d="M6,1L11,10L1,10Z" /> : <path className="ch-dot unplanned" d="M6,1L11,6L6,11L1,6Z" />}
+  </svg>
+);
+
+/**
+ * `myCats`: the categories the active user is split into (null when nobody is selected).
+ * The "Budget used" card is the whole group's; the chart and list show group totals for
+ * only the active user's categories.
+ */
+export default function Budget({ sum, myCats, onSelectMe, canEdit, onEdit }) {
+  const { budget, estimated, actual } = sum;
+  const rows = myCats ? sum.rows.filter((r) => myCats.has(r.name)) : [];
+  const anyOver = rows.some((r) => r.est > 0 && r.act > r.est);
+  const anyUnplanned = rows.some((r) => !r.est && r.act > 0);
   const overall = rowStatus(budget, actual, "budget");
   const empty = !budget && !estimated && !actual;
 
@@ -79,14 +97,26 @@ export default function Budget({ sum, canEdit, onEdit }) {
 
           <div className="card">
             <h3>Estimated vs actual</h3>
-            <p className="note sub">By category, largest first.</p>
-            <div className="legend">
-              <span><i className="sw act" />Actual</span>
-              <span><i className="sw est" />Estimated</span>
-              <span><i className="sw over" />Over estimate</span>
-            </div>
-            {rows.length ? rows.map((r) => <Row key={r.name} r={r} scale={scale} />)
-              : <div className="empty">No estimates or spending yet</div>}
+            <p className="note sub">Group totals for the categories you share expenses in, largest first.</p>
+            {!myCats && (
+              <div className="gap">
+                <p className="note">Select who you are to see the categories you share expenses in.</p>
+                {onSelectMe && <button type="button" className="btn ghost small" onClick={onSelectMe}>👤 Select your name</button>}
+              </div>
+            )}
+            {myCats && !rows.length && <div className="empty">You aren't part of any expenses yet.</div>}
+            {rows.length > 0 && (
+              <>
+                <div className="legend">
+                  <span><AreaKey k="act" />Actual</span>
+                  <span><AreaKey k="est" />Estimated</span>
+                  {anyOver && <span><ShapeKey k="over" />Over estimate</span>}
+                  {anyUnplanned && <span><ShapeKey k="unplanned" />Not estimated</span>}
+                </div>
+                <BudgetAreaChart rows={rows} statusOf={statusOf} />
+                <div className="blist">{rows.map((r) => <Row key={r.name} r={r} />)}</div>
+              </>
+            )}
           </div>
         </>
       )}
