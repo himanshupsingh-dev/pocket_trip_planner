@@ -47,8 +47,11 @@ export default function Budget({ sum, canEdit, onEdit }) {
   const empty = !budget && !estimated && !actual;
 
   let planNote = "";
-  if (budget && estimated > budget) planNote = `Estimates add up to ${inr(estimated)} — ${inr(estimated - budget)} more than the budget.`;
-  else if (budget && estimated) planNote = `Estimates add up to ${inr(estimated)} — ${inr(budget - estimated)} under the budget.`;
+  if (budget && estimated > 0 && estimated > budget) {
+    planNote = `Estimates add up to ${inr(estimated)} — ${inr(estimated - budget)} more than the budget.`;
+  } else if (budget && estimated > 0 && budget > estimated) {
+    planNote = `Estimates add up to ${inr(estimated)} — ${inr(budget - estimated)} under the budget.`;
+  }
 
   return (
     <section>

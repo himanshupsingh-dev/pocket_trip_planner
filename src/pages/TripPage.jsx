@@ -23,11 +23,12 @@ function BudgetTiles({ trip, sum }) {
   let remainingNote = "";
   if (over) remainingNote = "⚠ over budget";
   else if (sum.budget) remainingNote = "left to spend";
+  const estNote = sum.budget > 0 && sum.estimated === sum.budget ? "sum of categories" : pct(sum.estimated, sum.budget);
   return (
     <a className="stats" href={`#/${trip.id}/budget`} aria-label="Open budget">
       <div className="stat"><span>Budget</span><b>{sum.budget ? inr(sum.budget) : "Not set"}</b>
         <small>{sum.budget ? "total for the trip" : "tap to set"}</small></div>
-      <div className="stat"><span>Estimated</span><b>{inr(sum.estimated)}</b><small>{pct(sum.estimated, sum.budget)}</small></div>
+      <div className="stat"><span>Estimated</span><b>{inr(sum.estimated)}</b><small>{estNote}</small></div>
       <div className="stat"><span>Actual</span><b>{inr(sum.actual)}</b><small>{pct(sum.actual, sum.budget) || "spent so far"}</small></div>
       <div className={`stat ${over ? "neg" : ""}`}><span>Remaining</span>
         <b>{sum.budget ? inr(sum.remaining) : "—"}</b>
