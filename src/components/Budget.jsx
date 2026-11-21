@@ -52,24 +52,20 @@ const ShapeKey = ({ k }) => (
 );
 
 /**
- * `myCats`: the categories the active user is split into (null when nobody is selected).
- * The "Budget used" card is the whole group's; the chart and list show group totals for
- * only the active user's categories.
+ * `sum`: whole-trip summary (decides the "nothing set up yet" state; its rows feed the chart).
+ * `mySum`: the same figures for the active user's categories (see budgetSummary) — the
+ * "Budget used" card, matching the tiles above it.
+ * `myCats`: the categories the active user is split into (null when nobody is selected); the
+ * chart and list show group totals for only those.
  */
-export default function Budget({ sum, myCats, onSelectMe, canEdit, onEdit }) {
-  const { budget, estimated, actual } = sum;
+export default function Budget({ sum, mySum, myCats, onSelectMe, canEdit, onEdit }) {
+  const { budget, actual } = mySum;
   const rows = myCats ? sum.rows.filter((r) => myCats.has(r.name)) : [];
   const anyOver = rows.some((r) => r.est > 0 && r.act > r.est);
   const anyUnplanned = rows.some((r) => !r.est && r.act > 0);
   const overall = rowStatus(budget, actual, "budget");
-  const empty = !budget && !estimated && !actual;
-
-  let planNote = "";
-  if (budget && estimated > 0 && estimated > budget) {
-    planNote = `Estimates add up to ${inr(estimated)} — ${inr(estimated - budget)} more than the budget.`;
-  } else if (budget && estimated > 0 && budget > estimated) {
-    planNote = `Estimates add up to ${inr(estimated)} — ${inr(budget - estimated)} under the budget.`;
-  }
+  const empty = !sum.budget && !sum.estimated && !sum.actual;
+  const scopeNote = mySum.scope === "mine" ? "For the categories you share expenses in." : "For the whole trip.";
 
   return (
     <section>
@@ -84,15 +80,15 @@ export default function Budget({ sum, myCats, onSelectMe, canEdit, onEdit }) {
               <h3>Budget used</h3>
               <span className="v">{inr(actual)} <small>of {budget ? inr(budget) : "—"}</small></span>
             </div>
+            <p className="note sub">{scopeNote}</p>
             {budget > 0 ? (
               <>
                 <Meter est={budget} act={actual} scale={Math.max(budget, actual)} />
                 <div className={`bsub ${overall.cls}`}>{overall.text}</div>
               </>
             ) : (
-              <p className="note">No total budget set yet.</p>
+              <p className="note">{mySum.scope === "mine" ? "None of your categories has an estimate yet." : "No budget set yet."}</p>
             )}
-            {planNote && <p className={`note ${estimated > budget ? "warn" : ""}`}>{planNote}</p>}
           </div>
 
           <div className="card">

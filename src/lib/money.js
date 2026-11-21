@@ -3,17 +3,28 @@ export const inr = (n) => {
   return (r < 0 ? "−₹" : "₹") + Math.abs(r).toLocaleString("en-IN");
 };
 
-/** Budget vs estimated vs actual, overall and per category (largest first). */
-export function budgetSummary(trip, stats) {
-  const estimated = Object.keys(trip.categories).reduce((a, k) => a + (trip.estimates[k] || 0), 0);
-  const budget = estimated > 0 ? estimated : (trip.budget || 0);
-  const actual = stats.total;
+/**
+ * Budget vs estimated vs actual, overall and per category (largest first; `rows` always lists every category).
+ * With `cats` (a Set of category names, e.g. from sharedCategories()) the totals cover only those
+ * categories — group amounts, not personal shares — and `scope` is "mine". A trip-wide budget with no
+ * category estimates can't be split by category, so that case (and no `cats`) stays whole-trip: `scope` "trip".
+ */
+export function budgetSummary(trip, stats, cats = null) {
   const names = [...new Set([...Object.keys(trip.categories), ...Object.keys(stats.byCat)])];
   const rows = names
     .map((name) => ({ name, icon: trip.categories[name] || "📌", est: trip.estimates[name] || 0, act: stats.byCat[name] || 0 }))
     .filter((r) => r.est > 0 || r.act > 0)
     .sort((a, b) => Math.max(b.est, b.act) - Math.max(a.est, a.act));
-  return { budget, estimated, actual, remaining: budget - actual, rows };
+  const estimatedAll = Object.keys(trip.categories).reduce((a, k) => a + (trip.estimates[k] || 0), 0);
+  const mine = !!cats && (estimatedAll > 0 || !trip.budget);
+  if (!mine) {
+    const budget = estimatedAll > 0 ? estimatedAll : (trip.budget || 0);
+    return { budget, estimated: estimatedAll, actual: stats.total, remaining: budget - stats.total, rows, scope: "trip" };
+  }
+  const inScope = rows.filter((r) => cats.has(r.name));
+  const estimated = inScope.reduce((a, r) => a + r.est, 0);
+  const actual = inScope.reduce((a, r) => a + r.act, 0);
+  return { budget: estimated, estimated, actual, remaining: estimated - actual, rows, scope: "mine" };
 }
 
 /** Totals, per-person paid/share/balance. Expenses without a valid payer are skipped. */
