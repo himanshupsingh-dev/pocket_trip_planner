@@ -21,6 +21,8 @@ Git: the repo is `himanshupsingh-dev/pocket_trip_planner` and `main` is protecte
 
 Dependencies: Vite 8 needs `@vitejs/plugin-react` 6.x (4.x/5.1 reject Vite 8 as a peer, which makes CI's `npm ci` fail even when local installs work). **Never run `npm audit fix --force`** — it downgrades `firebase` to 9.14 and jumps majors, which broke the deploy once. The remaining `npm audit` findings (`@grpc/grpc-js` via `@firebase/firestore`) are Node-only and not in the browser bundle.
 
+Lockfile gotcha: npm on Windows (with `node_modules` present) drops `@emnapi/core` / `@emnapi/runtime` — deps of Vite 8's optional `@rolldown/binding-wasm32-wasi` — from `package-lock.json`. CI's newer npm then fails `npm ci` with `EUSAGE … Missing: @emnapi/… from lock file`. Fix: copy `package.json` + `package-lock.json` into an empty folder, delete the lock there, run `npm install --package-lock-only`, copy the new lock back, and confirm `npm ci --os=linux --cpu=x64 --dry-run` passes. After any `npm install <pkg>`, check `package-lock.json` still has `"node_modules/@emnapi/core"`.
+
 `firestore.rules` is **not** deployed by any script — after changing it, the rules must be pasted into Firebase console → Firestore → Rules → Publish.
 
 ## Hard constraints
