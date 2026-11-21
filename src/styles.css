@@ -180,6 +180,9 @@ nav.tabs a:focus-visible{outline-offset:-4px;border-radius:12px}
 .pill.stay{background:var(--green2);color:var(--green)}
 .pill.no{background:var(--goldbg);color:var(--goldink)}
 .pill.badge{background:var(--violetbg);color:var(--violet)}
+.pill.bad{background:var(--redbg);color:var(--red)}
+.pill.today{background:var(--green2);color:var(--green)}
+.pill.soon{background:var(--goldbg);color:var(--goldink)}
 .more{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--green);font-weight:600;margin-top:8px}
 .chev{transition:transform .2s var(--ease)}
 .day.open .chev{transform:rotate(180deg)}
@@ -394,28 +397,28 @@ fieldset.f{border:0;padding:0;margin:0 0 12px;min-width:0}
 @media (hover:hover){.pick button:not(.on):hover{border-color:var(--green)}}
 
 /* ---------- checklist tab ---------- */
-.chk-add-form{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-top:10px}
-.chk-add-inputs{display:grid;grid-template-columns:140px 1fr;gap:10px}
-@media (max-width:540px){
-  .chk-add-inputs{grid-template-columns:1fr}
-}
-.chk-label{display:block;font-size:12px;font-weight:600;color:var(--mute);margin-bottom:4px}
+/* fields reuse the shared .f styles; this only lays them out (date | task, stacked on phones) */
+.chk-add{margin-top:12px}
+.chk-add .btn{width:100%}
+.chk-fields{display:grid;grid-template-columns:170px 1fr;column-gap:10px}
+@media (max-width:540px){.chk-fields{grid-template-columns:1fr}}
+.chk-add + .chips{margin-top:14px}
+/* rows follow the expense list: .card.list, 12px/16px padding, thin dividers */
 .chk-list{list-style:none;padding:0;margin:0}
-.chk-item{display:flex;align-items:flex-start;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);transition:background .15s}
-.chk-item:last-child{border-bottom:0}
-.chk-item.done .chk-text{text-decoration:line-through;color:var(--mute)}
+.chk-item{display:flex;align-items:flex-start;gap:12px;padding:12px 16px}
+.chk-item + .chk-item{border-top:1px solid var(--line2)}
 .chk-item.done{opacity:.75}
-.chk-tick{flex:none;width:24px;height:24px;border-radius:6px;border:2px solid var(--line);background:var(--field);display:grid;place-items:center;cursor:pointer;font-size:15px;font-weight:700;line-height:1;margin-top:2px;color:transparent;transition:all .15s var(--ease)}
-.chk-tick:hover{border-color:var(--green)}
+.chk-item.done .chk-text{text-decoration:line-through;color:var(--mute)}
+.chk-tick{flex:none;width:24px;height:24px;border-radius:6px;border:2px solid var(--line);background:var(--field);display:grid;place-items:center;padding:0;
+  font-size:15px;font-weight:700;line-height:1;margin-top:1px;color:transparent;transition:background .15s,border-color .15s,color .15s}
 .chk-tick.checked{background:var(--green);border-color:var(--green);color:var(--on-green)}
+@media (hover:hover){.chk-tick:not(.checked):hover{border-color:var(--green)}}
 .chk-content{flex:1;min-width:0;cursor:pointer}
-.chk-text{font-size:15px;font-weight:600;word-break:break-word;line-height:1.4}
-.chk-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:4px;font-size:12px;color:var(--mute)}
-.chk-date{font-weight:500}
-.chk-date.no-date{opacity:.7}
-.chk-actions{flex:none;display:flex;align-items:center;gap:6px}
-.chk-item.editing{display:block;background:var(--field);border-radius:10px;padding:12px}
-.chk-edit-box{width:100%}
+.chk-text{font-weight:600;overflow-wrap:anywhere}
+.chk-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:2px;font-size:12px;color:var(--mute)}
+.chk-actions{flex:none}
+.chk-item.editing{display:block;background:var(--bg)}
+.chk-item.editing .actions{margin-top:4px}
 
 /* ---------- motion preferences ---------- */
 @media (prefers-reduced-motion:reduce){

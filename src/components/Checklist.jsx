@@ -147,16 +147,16 @@ export default function Checklist({ trip, items = [], canEdit = true }) {
   return (
     <section className="checklist-page">
       <div className="card">
-        <h3 style={{ fontSize: 19 }}>Pending checklist 📋</h3>
-        <p className="note" style={{ margin: "4px 0 12px" }}>
+        <h3>Pending checklist 📋</h3>
+        <p className="note sub">
           Shared checklist for everyone on this trip. Anyone can view, add, and edit tasks.
         </p>
 
         {/* Add item form */}
-        <form className="chk-add-form" onSubmit={handleAdd}>
-          <div className="chk-add-inputs">
-            <div className="chk-field-date">
-              <label htmlFor="chk-date" className="chk-label">Due date</label>
+        <form className="chk-add" onSubmit={handleAdd}>
+          <div className="chk-fields">
+            <div className="f">
+              <label htmlFor="chk-date">Due date</label>
               <input
                 id="chk-date"
                 type="date"
@@ -165,12 +165,13 @@ export default function Checklist({ trip, items = [], canEdit = true }) {
                 disabled={!canEdit}
               />
             </div>
-            <div className="chk-field-text">
-              <label htmlFor="chk-text" className="chk-label">Task description</label>
+            <div className="f">
+              <label htmlFor="chk-text">What needs to be done?</label>
               <input
                 id="chk-text"
                 type="text"
-                placeholder="What needs to be done? (e.g. Book cab, Pack jackets)"
+                placeholder="e.g. Book cab, pack jackets"
+                maxLength={200}
                 value={newText}
                 onChange={(e) => setNewText(e.target.value)}
                 disabled={!canEdit}
@@ -181,16 +182,15 @@ export default function Checklist({ trip, items = [], canEdit = true }) {
           <button
             type="submit"
             className="btn"
-            style={{ marginTop: 8 }}
             disabled={!newText.trim() || !canEdit || saving}
           >
             {saving ? "Adding…" : "+ Add task"}
           </button>
-          {err && <p className="err" style={{ marginTop: 8 }}>{err}</p>}
+          <div className="err">{err}</div>
         </form>
 
         {/* Filter chips */}
-        <div className="chips" style={{ marginTop: 14 }}>
+        <div className="chips">
           <button
             type="button"
             className={`chip ${filter === "all" ? "on" : ""}`}
@@ -216,9 +216,9 @@ export default function Checklist({ trip, items = [], canEdit = true }) {
       </div>
 
       {/* Checklist items */}
-      <div className="card" style={{ marginTop: 12 }}>
+      <div className="card list">
         {!displayed.length ? (
-          <div className="empty" style={{ padding: "24px 12px" }}>
+          <div className="empty">
             {items.length === 0
               ? "No tasks yet. Add your first task above!"
               : filter === "pending"
@@ -237,50 +237,51 @@ export default function Checklist({ trip, items = [], canEdit = true }) {
               if (isEditing) {
                 return (
                   <li key={id} className="chk-item editing">
-                    <div className="chk-edit-box">
-                      <div className="two" style={{ marginBottom: 8 }}>
-                        <div>
-                          <label className="chk-label">Due date</label>
-                          <input
-                            type="date"
-                            value={editDate}
-                            onChange={(e) => setEditDate(e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <label className="chk-label">Task description</label>
-                          <input
-                            type="text"
-                            value={editText}
-                            onChange={(e) => setEditText(e.target.value)}
-                            required
-                          />
-                        </div>
+                    <div className="chk-fields">
+                      <div className="f">
+                        <label htmlFor={`chk-date-${id}`}>Due date</label>
+                        <input
+                          id={`chk-date-${id}`}
+                          type="date"
+                          value={editDate}
+                          onChange={(e) => setEditDate(e.target.value)}
+                        />
                       </div>
-                      <div className="actions" style={{ marginTop: 6 }}>
-                        <button
-                          type="button"
-                          className="btn small"
-                          onClick={() => handleSaveEdit(item)}
-                          disabled={!editText.trim()}
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          className="btn ghost small"
-                          onClick={cancelEdit}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          className="btn danger small"
-                          onClick={() => handleDelete(id)}
-                        >
-                          Delete
-                        </button>
+                      <div className="f">
+                        <label htmlFor={`chk-text-${id}`}>What needs to be done?</label>
+                        <input
+                          id={`chk-text-${id}`}
+                          type="text"
+                          maxLength={200}
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          required
+                        />
                       </div>
+                    </div>
+                    <div className="actions">
+                      <button
+                        type="button"
+                        className="btn danger"
+                        onClick={() => handleDelete(id)}
+                      >
+                        Delete
+                      </button>
+                      <button
+                        type="button"
+                        className="btn ghost"
+                        onClick={cancelEdit}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => handleSaveEdit(item)}
+                        disabled={!editText.trim()}
+                      >
+                        Save
+                      </button>
                     </div>
                   </li>
                 );
@@ -299,28 +300,10 @@ export default function Checklist({ trip, items = [], canEdit = true }) {
                   <div className="chk-content" onClick={() => handleToggle(item)}>
                     <div className="chk-text">{item.text}</div>
                     <div className="chk-meta">
-                      {item.date ? (
-                        <span className="chk-date">
-                          📅 {fmtDay(item.date)}
-                        </span>
-                      ) : (
-                        <span className="chk-date no-date">No date</span>
-                      )}
-                      {!item.done && isPast && (
-                        <span className="pill bad" style={{ marginLeft: 6 }}>
-                          ⚠️ Overdue
-                        </span>
-                      )}
-                      {!item.done && isToday && (
-                        <span className="pill today" style={{ marginLeft: 6 }}>
-                          Today
-                        </span>
-                      )}
-                      {!item.done && isTomorrow && (
-                        <span className="pill soon" style={{ marginLeft: 6 }}>
-                          Tomorrow
-                        </span>
-                      )}
+                      <span>{item.date ? <>📅 {fmtDay(item.date)}</> : "No date"}</span>
+                      {!item.done && isPast && <span className="pill bad">⚠️ Overdue</span>}
+                      {!item.done && isToday && <span className="pill today">Today</span>}
+                      {!item.done && isTomorrow && <span className="pill soon">Tomorrow</span>}
                     </div>
                   </div>
                   <div className="chk-actions">

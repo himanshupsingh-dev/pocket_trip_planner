@@ -5,6 +5,7 @@ import { isConfigured, watchTrip, watchList, seedTrip } from "../lib/db.js";
 import { getMe, setMe as storeMe, rememberTrip, getUserName, setUserName, isDevMode } from "../lib/device.js";
 import { fmtRange, tripStatus } from "../lib/dates.js";
 import Plan from "../components/Plan.jsx";
+import Checklist from "../components/Checklist.jsx";
 import Expenses from "../components/Expenses.jsx";
 import Budget from "../components/Budget.jsx";
 import Settle from "../components/Settle.jsx";
