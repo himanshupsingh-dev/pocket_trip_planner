@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Sheet from "./Sheet.jsx";
 import { saveExpense, deleteExpense } from "../lib/db.js";
 import { todayISO } from "../lib/dates.js";
+import { round2 } from "../lib/money.js";
 
 export default function ExpenseSheet({ trip, exp, me, members, nameOf, onClose }) {
   const CATS = trip.categories, PLACES = trip.places;
@@ -40,7 +41,7 @@ export default function ExpenseSheet({ trip, exp, me, members, nameOf, onClose }
   const submit = async (e) => {
     e.preventDefault();
     if (!canModify) return setErr(`Only ${nameOf(exp.paidBy)} can edit this expense.`);
-    const d = desc.trim(), a = Number(amount) || 0;
+    const d = desc.trim(), a = round2(amount);
     if (!d) return setErr("Add a short description.");
     if (a < 0) return setErr("Amount can't be negative.");
     if (!payer) return setErr("Please choose who you are first before adding an expense.");
@@ -83,7 +84,7 @@ export default function ExpenseSheet({ trip, exp, me, members, nameOf, onClose }
       <div className="two">
         <div className="f">
           <label htmlFor="e-amount">Amount (₹)</label>
-          <input id="e-amount" type="number" inputMode="decimal" min="0" step="1" placeholder="0" disabled={!canModify}
+          <input id="e-amount" type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" disabled={!canModify}
             value={amount} onChange={(e) => setAmount(e.target.value)} />
         </div>
         <div className="f">

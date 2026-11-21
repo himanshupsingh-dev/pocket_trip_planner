@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Sheet from "./Sheet.jsx";
 import { updateTrip } from "../lib/db.js";
-import { inr } from "../lib/money.js";
+import { inr, round2, toPaise } from "../lib/money.js";
 
 /** Set the total budget and an estimate for each category, and manage categories. */
 export default function BudgetSheet({ trip, expenses = [], onClose }) {
@@ -15,7 +15,7 @@ export default function BudgetSheet({ trip, expenses = [], onClose }) {
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const total = categories.reduce((a, c) => a + (Number(est[c.name]) || 0), 0);
+  const total = categories.reduce((a, c) => a + toPaise(est[c.name]), 0) / 100;
 
   const removeCat = (name) => {
     if (categories.length <= 1) {
@@ -56,7 +56,7 @@ export default function BudgetSheet({ trip, expenses = [], onClose }) {
       await updateTrip(trip.id, {
         budget: total,
         categories: categories.map((c) => ({ name: c.name.trim(), icon: c.icon.trim() || "📌" })),
-        estimates: Object.fromEntries(categories.map((c) => [c.name, Math.max(0, Number(est[c.name]) || 0)])),
+        estimates: Object.fromEntries(categories.map((c) => [c.name, Math.max(0, round2(est[c.name]))])),
       });
       onClose();
     } catch {
@@ -80,7 +80,7 @@ export default function BudgetSheet({ trip, expenses = [], onClose }) {
         {categories.map((c) => (
           <div className="estrow" key={c.name}>
             <span className="n">{c.icon} {c.name}</span>
-            <input type="number" inputMode="numeric" min="0" step="1" placeholder="0" aria-label={`${c.name} estimate`}
+            <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0" aria-label={`${c.name} estimate`}
               value={est[c.name] ?? ""} onChange={(e) => setEst({ ...est, [c.name]: e.target.value })} />
             <button type="button" className="x small" title={`Remove ${c.name}`} aria-label={`Remove ${c.name}`}
               onClick={() => removeCat(c.name)}>×</button>

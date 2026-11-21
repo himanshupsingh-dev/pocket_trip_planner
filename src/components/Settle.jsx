@@ -1,4 +1,4 @@
-import { inr, settle } from "../lib/money.js";
+import { inr, round2, settle } from "../lib/money.js";
 
 function Bars({ data, icons = {} }) {
   const rows = Object.entries(data).sort((a, b) => b[1] - a[1]);
@@ -32,7 +32,7 @@ export default function Settle({ trip, members, stats, expenses = [], nameOf, me
   const meValid = !!me && members.some((m) => m.id === me);
   const xs = settle(members, expenses);
   const myXs = meValid ? xs.filter(([f, t]) => f === me || t === me) : [];
-  const myBal = meValid ? Math.round(stats.bal[me] || 0) : 0;
+  const myBal = meValid ? round2(stats.bal[me] || 0) : 0;
 
   let balCls = "", balLabel = "You're settled up ✔", balAmt = inr(0);
   if (myBal > 0) { balCls = "pos"; balLabel = "You get back"; balAmt = inr(myBal); }
