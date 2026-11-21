@@ -48,7 +48,7 @@ Firestore cannot store nested arrays, so groups and categories are arrays of obj
 
 **TripPage** owns all live subscriptions (`watchTrip`, `watchList(…,"expenses")`, `watchList(…,"days")`) and a single `sheet` state (`{type: "exp"|"who"|"trip"|"share"|"day"|"budget", …}`) that decides which bottom sheet (`components/*Sheet.jsx`) is open. Editing is enabled only when `canEdit = isConfigured && dbTrip`.
 
-**Device-only state** (`src/lib/device.js`, localStorage): the list of trips created/opened on this device (what Home shows, plus unseeded templates) and the "who are you" member id per trip (`ptp-me:<tripId>`). Never stored in Firestore.
+**Device-only state** (`src/lib/device.js`, localStorage): the default device user name (`ptp-user-name`, selected via member buttons when entering a trip page for the first time, never prompted on homepage), the list of trips created/opened on this device (what Home shows, plus unseeded templates), the "who are you" member id per trip (`ptp-me:<tripId>`), and the global developer mode flag (`ptp-dev-mode`, default false / inactive; unlocked with password on homepage, exposed via `isDevMode()`, `setDevMode()`, and `window.__DEV_MODE__`). Switching active user identity is strictly restricted to Developer Mode; normal users are bound to their device name. Never stored in Firestore.
 
 **Money rules** (`src/lib/money.js`):
 - `compute()` skips expenses with no valid payer; shares are equal splits over `split` ids that are still members.
