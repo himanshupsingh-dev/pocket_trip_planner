@@ -42,6 +42,23 @@ export function compute(members, expenses) {
   return { paid, share, bal, total, unpaidTotal, byCat, byPlace };
 }
 
+/**
+ * Categories of the counted expenses (amount > 0, valid payer — same rule as compute()) that
+ * `memberId` is split into, whoever paid. Used to scope the Budget chart to the active user.
+ */
+export function sharedCategories(memberId, members, expenses) {
+  const ids = members.map((m) => m.id);
+  const valid = new Set(ids);
+  const out = new Set();
+  for (const e of expenses) {
+    if ((Number(e.amount) || 0) <= 0 || !valid.has(e.paidBy)) continue;
+    let split = (Array.isArray(e.split) ? e.split : ids).filter((id) => valid.has(id));
+    if (!split.length) split = ids;
+    if (split.includes(memberId)) out.add(e.category || "Other");
+  }
+  return out;
+}
+
 /** Direct pairwise settle-up: net debts between pairs who actually shared expenses. Returns [from, to, amount][]. */
 export function settle(members, expensesOrBal) {
   if (!Array.isArray(expensesOrBal)) return [];

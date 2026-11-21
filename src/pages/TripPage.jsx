@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getTemplate, normalizeTrip, templateDoc, templateDays } from "../trips/index.js";
-import { compute, inr, budgetSummary } from "../lib/money.js";
+import { compute, inr, budgetSummary, sharedCategories } from "../lib/money.js";
 import { isConfigured, watchTrip, watchList, seedTrip } from "../lib/db.js";
 import { getMe, setMe as storeMe, rememberTrip, getUserName, setUserName, isDevMode } from "../lib/device.js";
 import { fmtRange, tripStatus } from "../lib/dates.js";
@@ -137,6 +137,11 @@ export default function TripPage({ tripId, view }) {
 
   const stats = useMemo(() => compute(members, expenses), [members, expenses]);
   const sum = useMemo(() => (trip ? budgetSummary(trip, stats) : null), [trip, stats]);
+  // categories the active user is split into (null until they've picked who they are)
+  const myCats = useMemo(
+    () => (meValid ? sharedCategories(me, members, expenses) : null),
+    [meValid, me, members, expenses]
+  );
 
   if (!trip) {
     if (tripState === "setup") return <Message>⚙️ Setup needed: paste your Firebase config into <b>src/firebase-config.js</b>.</Message>;
@@ -239,7 +244,7 @@ export default function TripPage({ tripId, view }) {
           />
         )}
         {view === "budget" && (
-          <Budget sum={sum} canEdit={canEdit} onEdit={() => setSheet({ type: "budget" })} />
+          <Budget sum={sum} myCats={myCats} onSelectMe={openWho} canEdit={canEdit} onEdit={() => setSheet({ type: "budget" })} />
         )}
         {view === "settle" && (
           <Settle
