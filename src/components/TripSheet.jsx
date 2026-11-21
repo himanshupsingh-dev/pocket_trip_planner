@@ -2,6 +2,7 @@ import { useState } from "react";
 import Sheet from "./Sheet.jsx";
 import { createTrip, updateTrip } from "../lib/db.js";
 import { DEFAULT_CATEGORIES, newTripId, newMemberId } from "../trips/index.js";
+import { getUserName } from "../lib/device.js";
 
 const lines = (s) => s.split("\n").map((x) => x.trim()).filter(Boolean);
 
@@ -14,7 +15,12 @@ export default function TripSheet({ trip, expenses = [], onClose, onSaved }) {
   const [startDate, setStartDate] = useState(trip?.startDate || "");
   const [endDate, setEndDate] = useState(trip?.endDate || "");
   const [budget, setBudget] = useState("");
-  const [members, setMembers] = useState(trip?.members || [{ id: "m1", name: "" }, { id: "m2", name: "" }]);
+  const [members, setMembers] = useState(
+    trip?.members || [
+      { id: "m1", name: getUserName() || "" },
+      { id: "m2", name: "" },
+    ]
+  );
   const [categories, setCategories] = useState(() =>
     trip ? Object.entries(trip.categories).map(([name, icon]) => ({ name, icon })) : DEFAULT_CATEGORIES
   );

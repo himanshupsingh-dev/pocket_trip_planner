@@ -1,6 +1,6 @@
 :root{
   --bg:#f6f3ea;--card:#fff;--ink:#1d2b24;--mute:#6b766f;--line:#e4ded0;
-  --green:#1f6e5c;--green2:#e3efe9;--gold:#d99a2b;--red:#b3412e;--redbg:#fbe9e5;--okbg:#e6f3ea;--ok:#23794a;
+  --green:#1f6e5c;--green2:#e3efe9;--gold:#d99a2b;--red:#d32f2f;--redbg:#fbe9e5;--okbg:#e6f3ea;--ok:#23794a;
   --r:14px;
 }
 *{box-sizing:border-box}
@@ -15,6 +15,7 @@ header.hero h1{font-size:34px;margin:6px 0 4px}
 header.hero p{margin:0;opacity:.9}
 header.hero .crumb{text-align:left;max-width:728px;margin:-14px auto 10px}
 header.hero .crumb a{color:#fff;opacity:.85;text-decoration:none;font-size:13px;font-weight:600}
+.devbadge{display:inline-block;background:rgba(255,255,255,.2);color:#fff;border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
 /* home: trip list */
 .trips .trip:first-child{margin-top:-48px}
 a.trip{display:flex;gap:14px;align-items:center;text-decoration:none;color:inherit;border-left:4px solid var(--green);box-shadow:0 2px 10px rgba(0,0,0,.06)}
@@ -83,9 +84,11 @@ select.filter{flex:1;min-width:120px;border:1px solid var(--line);border-radius:
 .bal{font-weight:700;text-align:right;align-self:center;grid-row:span 2}
 .bal.pos{color:var(--ok)}.bal.neg{color:var(--red)}
 .xfer{display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;background:var(--redbg);margin-top:8px;font-weight:600}
+.xfer.pay{background:var(--redbg)}
 .xfer.rec{background:var(--okbg)}
 .xfer .arrow{color:var(--mute);font-weight:400}
-.xfer .a{margin-left:auto;white-space:nowrap;color:var(--red)}
+.xfer .a{margin-left:auto;white-space:nowrap;font-weight:700;color:var(--red)}
+.xfer.pay .a{color:var(--red)}
 .xfer.rec .a{color:var(--ok)}
 .allok{background:var(--okbg);color:var(--ok);padding:12px;border-radius:10px;font-weight:600;text-align:center}
 .bars .row{display:grid;grid-template-columns:110px 1fr 80px;gap:8px;align-items:center;font-size:13px;margin:6px 0}
@@ -135,6 +138,12 @@ fieldset.f{border:0;padding:0;margin:0 0 12px;min-width:0}
 .addcat .caticon{width:48px;text-align:center;font-size:18px;padding:8px;border:1px solid var(--line);border-radius:10px;background:#fff}
 .addcat .catname{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:#fff}
 .linkbox{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg);font-size:13px}
+.devsection{margin-top:28px;text-align:center;padding-top:16px;border-top:1px solid var(--line)}
+.devtrigger{background:transparent;border:0;color:var(--mute);font-size:13px;font-weight:600;cursor:pointer;padding:6px 12px;border-radius:8px}
+.devtrigger:hover{color:var(--ink);background:rgba(0,0,0,.04)}
+.devcard{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;font-size:13px}
+.devstatus{display:flex;align-items:center;gap:8px}
+.devstatus .dot{width:8px;height:8px;border-radius:99px;background:var(--ok)}
 /* budget tab: meters on a shared scale */
 .card h3{font-size:19px}
 .bhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}

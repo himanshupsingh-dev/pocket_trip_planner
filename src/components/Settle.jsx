@@ -44,7 +44,7 @@ export default function Settle({ trip, members, stats, expenses = [], nameOf, me
           myXs.map(([f, t, a]) => {
             const isPayer = f === me;
             return (
-              <div className={`xfer ${isPayer ? "" : "rec"}`} key={f + t}>
+              <div className={`xfer ${isPayer ? "pay" : "rec"}`} key={f + t}>
                 <span>{isPayer ? "You pay" : nameOf(f) + " pays"}</span>
                 <span className="arrow">→</span>
                 <span>{isPayer ? nameOf(t) : "You"}</span>

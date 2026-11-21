@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getTemplate, normalizeTrip, templateDoc, templateDays } from "../trips/index.js";
 import { compute, inr, budgetSummary } from "../lib/money.js";
 import { isConfigured, watchTrip, watchList, seedTrip } from "../lib/db.js";
-import { getMe, setMe as storeMe, rememberTrip } from "../lib/device.js";
+import { getMe, setMe as storeMe, rememberTrip, getUserName, setUserName, isDevMode } from "../lib/device.js";
 import { fmtRange } from "../lib/dates.js";
 import Plan from "../components/Plan.jsx";
 import Expenses from "../components/Expenses.jsx";
@@ -54,7 +54,14 @@ export default function TripPage({ tripId, view }) {
   const [tripState, setTripState] = useState(isConfigured ? "loading" : "setup");
   const [status, setStatus] = useState(isConfigured ? "loading" : "setup");
   const [me, setMe] = useState(() => getMe(tripId));
+  const [devMode, setDevMode] = useState(() => isDevMode());
   const [sheet, setSheet] = useState(null);
+
+  useEffect(() => {
+    const onDev = (e) => setDevMode(e.detail);
+    window.addEventListener("ptp-dev-mode-change", onDev);
+    return () => window.removeEventListener("ptp-dev-mode-change", onDev);
+  }, []);
 
   // Until the database answers (or with no database), built-in trips show their template.
   const trip = useMemo(() => {
@@ -90,10 +97,24 @@ export default function TripPage({ tripId, view }) {
 
   const meValid = !!me && members.some((m) => m.id === me);
 
-  // first visit: ask who you are (once the real member list has loaded)
+  // When members load, auto-match if device has a default user name and no active member set
   useEffect(() => {
-    if (dbTrip && !meValid) setSheet((s) => s || { type: "who" });
-  }, [!!dbTrip]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (me || !members.length) return;
+    const storedName = getUserName().trim().toLowerCase();
+    if (!storedName) return;
+    const match = members.find((m) => m.name.trim().toLowerCase() === storedName);
+    if (match) {
+      setMe(match.id);
+      storeMe(tripId, match.id);
+    }
+  }, [tripId, members, me]);
+
+  // first visit: ask who you are using member buttons if not matched yet
+  useEffect(() => {
+    if (dbTrip && !meValid) {
+      setSheet((s) => s || { type: "who" });
+    }
+  }, [!!dbTrip, meValid]);
 
   const stats = useMemo(() => compute(members, expenses), [members, expenses]);
   const sum = useMemo(() => (trip ? budgetSummary(trip, stats) : null), [trip, stats]);
@@ -111,6 +132,10 @@ export default function TripPage({ tripId, view }) {
   const chooseMe = (id) => {
     setMe(id);
     storeMe(tripId, id);
+    const m = members.find((x) => x.id === id);
+    if (m?.name) {
+      setUserName(m.name);
+    }
     const next = sheet?.next;
     setSheet(next ? { type: "exp", exp: next.exp } : null);
   };
@@ -131,9 +156,19 @@ export default function TripPage({ tripId, view }) {
         <h1>{trip.title} {trip.emoji}</h1>
         {trip.startDate && <p>{fmtRange(trip.startDate, trip.endDate)}</p>}
         <div className="heroacts">
-          <button className="hbtn" onClick={() => setSheet({ type: "who" })}>
-            👤 {meValid ? `${nameOf(me)} · change` : "Select your name"}
-          </button>
+          {devMode ? (
+            <button className="hbtn" onClick={() => setSheet({ type: "who" })}>
+              👤 {meValid ? `${nameOf(me)} · change (Dev)` : "Select user (Dev)"}
+            </button>
+          ) : meValid ? (
+            <span className="hbtn" style={{ cursor: "default" }}>
+              👤 {nameOf(me)}
+            </span>
+          ) : (
+            <button className="hbtn" onClick={() => setSheet({ type: "who" })}>
+              👤 Select your name
+            </button>
+          )}
           {canEdit && <button className="hbtn" onClick={() => setSheet({ type: "share" })}>🔗 Invite</button>}
           {canEdit && <button className="hbtn" onClick={() => setSheet({ type: "trip" })}>⚙️ Edit trip</button>}
         </div>
@@ -170,7 +205,13 @@ export default function TripPage({ tripId, view }) {
         <ExpenseSheet trip={trip} exp={sheet.exp} me={me} members={members} nameOf={nameOf} onClose={close} />
       )}
       {sheet?.type === "who" && (
-        <WhoSheet members={members} me={me} onPick={chooseMe} onClose={meValid ? close : null} />
+        <WhoSheet
+          members={members}
+          me={me}
+          onPick={chooseMe}
+          onClose={meValid ? close : null}
+          isDev={devMode}
+        />
       )}
       {sheet?.type === "trip" && <TripSheet trip={trip} expenses={expenses} onClose={close} />}
       {sheet?.type === "share" && <ShareSheet trip={trip} onClose={close} />}
