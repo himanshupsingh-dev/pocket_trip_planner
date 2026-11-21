@@ -5,6 +5,7 @@ Plan group trips, track the budget, and split expenses. Each trip has its own it
 **Features**
 - **＋ New trip** from the home page: name, dates, budget, members, places.
 - **Plan:** day-by-day itinerary, editable in the app (add / edit / delete days and places).
+- **Checklist:** shared trip to-do list (tasks with due dates, sorted in ascending order of date; anyone can view, add, or edit tasks).
 - **Expenses:** anyone on the trip adds what they paid; split equally among the people ticked.
 - **Budget:** total budget, an estimate per category, and an *Estimated vs actual* chart. The Budget, Estimated, Actual and Remaining tiles show on every tab.
 - **Settle up:** who pays whom, balances, totals by category and place.
@@ -48,7 +49,7 @@ firestore.rules           database security rules
 ```
 
 **Database layout:** `trips/{tripId}` (title, dates, members, budget, estimates, places), with
-`trips/{tripId}/expenses/{id}` and `trips/{tripId}/days/{id}` underneath.
+`trips/{tripId}/expenses/{id}`, `trips/{tripId}/days/{id}`, and `trips/{tripId}/checklist/{id}` underneath.
 
 ---
 

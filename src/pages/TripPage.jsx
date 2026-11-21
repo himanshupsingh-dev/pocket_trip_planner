@@ -64,6 +64,7 @@ export default function TripPage({ tripId, view }) {
   const [dbTrip, setDbTrip] = useState(null);       // trip fields from the database
   const [dbDays, setDbDays] = useState(null);       // null until the database answers
   const [expenses, setExpenses] = useState([]);
+  const [checklist, setChecklist] = useState([]);
   const [tripState, setTripState] = useState(isConfigured ? "loading" : "setup");
   const [status, setStatus] = useState(isConfigured ? "loading" : "setup");
   const [me, setMe] = useState(() => getMe(tripId));
@@ -100,7 +101,8 @@ export default function TripPage({ tripId, view }) {
     const un2 = watchList(tripId, "expenses",
       (list, fromCache) => { setExpenses(list); if (!fromCache) { setStatus("ok"); clearTimeout(timer); } }, fail);
     const un3 = watchList(tripId, "days", (list, fromCache) => { if (!fromCache || list.length) setDbDays(list); }, () => {});
-    return () => { clearTimeout(timer); un1(); un2(); un3(); };
+    const un4 = watchList(tripId, "checklist", (list) => setChecklist(list), () => {});
+    return () => { clearTimeout(timer); un1(); un2(); un3(); un4(); };
   }, [tripId, template]);
 
   // remember this trip on the device; keep the tab title current
@@ -151,6 +153,14 @@ export default function TripPage({ tripId, view }) {
   );
   // the tiles and "Budget used" card: group totals for those categories (whole trip when nobody is selected)
   const mySum = useMemo(() => (trip ? budgetSummary(trip, stats, myCats) : null), [trip, stats, myCats]);
+
+  const allChecklistItems = useMemo(() => {
+    const docItems = Array.isArray(trip?.checklist) ? trip.checklist : [];
+    if (!checklist.length) return docItems;
+    const ids = new Set(checklist.map((i) => i._id || i.id));
+    const uniqueDocItems = docItems.filter((i) => !ids.has(i.id || i._id));
+    return [...checklist, ...uniqueDocItems];
+  }, [trip?.checklist, checklist]);
 
   if (!trip) {
     if (tripState === "setup") return <Message>⚙️ Setup needed: paste your Firebase config into <b>src/firebase-config.js</b>.</Message>;
@@ -245,6 +255,9 @@ export default function TripPage({ tripId, view }) {
         {view === "plan" && (
           <Plan trip={trip} days={days} canEdit={canEdit}
             onEditDay={(day) => setSheet({ type: "day", day })} />
+        )}
+        {view === "checklist" && (
+          <Checklist trip={trip} items={allChecklistItems} canEdit={canEdit} />
         )}
         {view === "expenses" && (
           <Expenses

@@ -42,6 +42,7 @@ export function normalizeTrip(id, d = {}) {
     places,
     defaultPlace: places.includes(d.defaultPlace) ? d.defaultPlace : places[0],
     planNote: String(d.planNote || ""),
+    checklist: Array.isArray(d.checklist) ? d.checklist : [],
   };
 }
 
@@ -52,6 +53,7 @@ export const templateDoc = (t) => ({
   budget: t.budget || 0, estimates: t.estimates || {},
   members: t.members, categories: t.categories || DEFAULT_CATEGORIES,
   places: t.places || [], defaultPlace: t.defaultPlace || "", planNote: t.planNote || "",
+  checklist: t.checklist || [],
 });
 
 export const templateDays = (t) => (t.days || []).map((d, i) => ({ _id: "day-" + (i + 1), createdAt: i + 1, ...d }));

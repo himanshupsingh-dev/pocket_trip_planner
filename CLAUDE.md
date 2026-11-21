@@ -33,12 +33,13 @@ Lockfile gotcha: npm on Windows (with `node_modules` present) drops `@emnapi/cor
 
 ## Architecture
 
-**Routing** (`src/App.jsx`): hash-based. `#/` → `pages/Home.jsx`; `#/<tripId>/<view>` → `pages/TripPage.jsx`, with `view` ∈ plan | expenses | budget | settle. `TripPage` is keyed by tripId so state resets between trips.
+**Routing** (`src/App.jsx`): hash-based. `#/` → `pages/Home.jsx`; `#/<tripId>/<view>` → `pages/TripPage.jsx`, with `view` ∈ plan | checklist | expenses | budget | settle. `TripPage` is keyed by tripId so state resets between trips.
 
 **Firestore layout** (all access in `src/lib/db.js`):
-- `trips/{tripId}` — title, emoji, subtitle, startDate, endDate, budget, `estimates` (map category→₹), `members` [{id,name}], `categories` [{name,icon}], places, defaultPlace, planNote
+- `trips/{tripId}` — title, emoji, subtitle, startDate, endDate, budget, `estimates` (map category→₹), `members` [{id,name}], `categories` [{name,icon}], places, defaultPlace, planNote, `checklist` [{id, text, date, done, createdAt}]
 - `trips/{tripId}/expenses/{id}` — desc, amount, date, category, place, paidBy (member id), split (member ids), createdAt
 - `trips/{tripId}/days/{id}` — date, title, route, stay, nostay, badge, note, `groups` [{h, items[]}], createdAt
+- `trips/{tripId}/checklist/{id}` — text, date (`YYYY-MM-DD`), done (boolean), createdAt. Shared pending checklist: not user-specific; anyone with access can view, add, toggle done, edit text/date, and delete entries. Displayed ordered in ascending order of the date.
 
 Firestore cannot store nested arrays, so groups and categories are arrays of objects; categories are an array (not a map) to keep their order. Firestore is initialised with `ignoreUndefinedProperties`.
 
@@ -46,7 +47,7 @@ Firestore cannot store nested arrays, so groups and categories are arrays of obj
 
 **Built-in templates** (`src/trips/*.js`, registered in `src/trips/index.js`): a template's `id` is its trip id. The first time a template trip is opened and Firestore reports the doc missing, `seedTrip()` writes the trip, its days and seed expenses in one batch; afterwards the database is the source of truth and the template file is no longer read for that trip. Until Firestore answers (or when unconfigured), `TripPage` renders the template directly. Editing a template file does not change an already-seeded trip.
 
-**TripPage** owns all live subscriptions (`watchTrip`, `watchList(…,"expenses")`, `watchList(…,"days")`) and a single `sheet` state (`{type: "exp"|"who"|"trip"|"share"|"day"|"budget", …}`) that decides which bottom sheet (`components/*Sheet.jsx`) is open. Editing is enabled only when `canEdit = isConfigured && dbTrip`.
+**TripPage** owns all live subscriptions (`watchTrip`, `watchList(…,"expenses")`, `watchList(…,"days")`, `watchList(…,"checklist")`) and a single `sheet` state (`{type: "exp"|"who"|"trip"|"share"|"day"|"budget", …}`) that decides which bottom sheet (`components/*Sheet.jsx`) is open. Editing is enabled only when `canEdit = isConfigured && dbTrip`.
 
 **Device-only state** (`src/lib/device.js`, localStorage): the default device user name (`ptp-user-name`, selected via member buttons when entering a trip page for the first time, never prompted on homepage), the list of trips created/opened on this device (what Home shows, plus unseeded templates), the "who are you" member id per trip (`ptp-me:<tripId>`), and the global developer mode flag (`ptp-dev-mode`, default false / inactive; unlocked with password on homepage, exposed via `isDevMode()`, `setDevMode()`, and `window.__DEV_MODE__`). Switching active user identity is strictly restricted to Developer Mode; normal users are bound to their device name. Never stored in Firestore.
 
