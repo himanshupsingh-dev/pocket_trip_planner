@@ -7,6 +7,7 @@
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,sans-serif}
 h1,h2,h3{font-family:Fraunces,Georgia,serif;margin:0;line-height:1.2}
 button,input,select,textarea{font:inherit;color:inherit}
+input:disabled,select:disabled,textarea:disabled{background:var(--bg);color:var(--mute);cursor:default;opacity:.9}
 .wrap{max-width:760px;margin:0 auto;padding:0 16px 110px}
 header.hero{background:linear-gradient(160deg,#1f6e5c 0%,#16503f 100%);color:#fff;padding:28px 20px 70px;text-align:center}
 header.hero .kick{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.8}

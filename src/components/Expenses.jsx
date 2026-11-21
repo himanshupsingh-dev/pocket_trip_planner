@@ -63,7 +63,7 @@ export default function Expenses({ trip, members, expenses, status, nameOf, onAd
           );
         })}
       </div>
-      <p className="note">Tap any expense to edit it. Each one is split equally among the people ticked in “Split between”.</p>
+      <p className="note">Tap any expense to view or edit it. Only the person who paid for an expense can edit or delete it.</p>
     </section>
   );
 }
