@@ -1,21 +1,34 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { saveChecklistItem, deleteChecklistItem, saveChecklist } from "../lib/db.js";
 import { fmtDay, todayISO, addDays, dayCount } from "../lib/dates.js";
 
-export default function Checklist({ trip, items = [], canEdit = true }) {
+export default function Checklist({ trip, items = [], canEdit = true, onAdd }) {
   const today = todayISO();
   const tomorrow = addDays(today, 1);
 
   const [filter, setFilter] = useState("all"); // "all" | "pending" | "done"
-  const [newText, setNewText] = useState("");
-  const [newDate, setNewDate] = useState(today);
-  const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
   // Edit state
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
   const [editDate, setEditDate] = useState("");
+  // Delete asks for a second tap (like expenses) instead of a browser pop-up; it disarms after 3 s.
+  const [armed, setArmed] = useState(false);
+
+  useEffect(() => {
+    if (!armed) return;
+    const t = setTimeout(() => setArmed(false), 3000);
+    return () => clearTimeout(t);
+  }, [armed]);
+
+  // A task normally lives in trips/{id}/checklist/{taskId} (it then has `_id`). Tasks saved while the
+  // checklist rules weren't published sit in the trip document's `checklist` array instead (`id`),
+  // and a task can be in both. Writes must touch only the trip's own array, never the merged list.
+  const idOf = (it) => it._id || it.id;
+  const docList = trip.checklist || [];
+  const inDoc = (id) => docList.some((it) => idOf(it) === id);
+  const withoutDoc = (id) => docList.filter((it) => idOf(it) !== id);
 
   const pendingCount = items.filter((i) => !i.done).length;
   const doneCount = items.filter((i) => i.done).length;
@@ -35,195 +48,120 @@ export default function Checklist({ trip, items = [], canEdit = true }) {
     return true;
   });
 
-  const handleAdd = async (e) => {
-    e.preventDefault();
-    const text = newText.trim();
-    if (!text || !canEdit || saving) return;
-    setSaving(true);
-    setErr("");
-    const newItem = {
-      text,
-      date: newDate || "",
-      done: false,
-      createdAt: Date.now(),
-    };
+  let emptyText = "No completed tasks yet.";
+  if (!items.length) emptyText = "No tasks yet — tap “＋ Add task” to add the first one.";
+  else if (filter === "pending") emptyText = "🎉 No pending tasks! Everything is done.";
+
+  /**
+   * Save a task to its own document. If that's refused (rules not published) and the task is on the
+   * trip document, update it there instead. If it worked and an old copy is on the trip document,
+   * drop that copy, so the task now lives in one place and Delete removes it for good.
+   */
+  const saveItem = async (item, body) => {
+    const id = idOf(item);
     try {
-      try {
-        await saveChecklistItem(trip.id, null, newItem);
-      } catch {
-        // Fallback to trip document if subcollection rule isn't deployed yet
-        const id = "chk-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6);
-        await saveChecklist(trip.id, [...items, { id, ...newItem }]);
-      }
-      setNewText("");
+      await saveChecklistItem(trip.id, id, body);
     } catch (e) {
-      setErr(e?.message || "Failed to add task");
-    } finally {
-      setSaving(false);
+      if (!inDoc(id)) throw e;
+      await saveChecklist(trip.id, docList.map((it) => (idOf(it) === id ? { ...it, ...body } : it)));
+      return;
     }
+    if (inDoc(id)) await saveChecklist(trip.id, withoutDoc(id));
   };
 
   const handleToggle = async (item) => {
     if (!canEdit) return;
     setErr("");
-    const id = item._id || item.id;
-    const body = {
-      text: item.text,
-      date: item.date || "",
-      done: !item.done,
-      createdAt: item.createdAt || Date.now(),
-    };
     try {
-      try {
-        await saveChecklistItem(trip.id, id, body);
-      } catch {
-        const updated = items.map((it) =>
-          (it._id || it.id) === id ? { ...it, done: !it.done } : it
-        );
-        await saveChecklist(trip.id, updated);
-      }
+      await saveItem(item, {
+        text: item.text,
+        date: item.date || "",
+        done: !item.done,
+        createdAt: item.createdAt || Date.now(),
+      });
     } catch (e) {
       setErr(e?.message || "Failed to update task");
     }
   };
 
   const startEdit = (item) => {
-    const id = item._id || item.id;
-    setEditingId(id);
+    setEditingId(idOf(item));
     setEditText(item.text);
     setEditDate(item.date || "");
+    setArmed(false);
+    setErr("");
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setEditText("");
     setEditDate("");
+    setArmed(false);
   };
 
   const handleSaveEdit = async (item) => {
     const text = editText.trim();
     if (!text || !canEdit) return;
     setErr("");
-    const id = item._id || item.id;
-    const body = {
-      text,
-      date: editDate || "",
-      done: item.done || false,
-      createdAt: item.createdAt || Date.now(),
-    };
     try {
-      try {
-        await saveChecklistItem(trip.id, id, body);
-      } catch {
-        const updated = items.map((it) =>
-          (it._id || it.id) === id ? { ...it, text, date: editDate || "" } : it
-        );
-        await saveChecklist(trip.id, updated);
-      }
+      await saveItem(item, {
+        text,
+        date: editDate || "",
+        done: item.done || false,
+        createdAt: item.createdAt || Date.now(),
+      });
       cancelEdit();
     } catch (e) {
       setErr(e?.message || "Failed to save edit");
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (item) => {
     if (!canEdit) return;
-    if (window.confirm("Delete this checklist item?")) {
-      setErr("");
-      try {
-        try {
-          await deleteChecklistItem(trip.id, id);
-        } catch {
-          const updated = items.filter((it) => (it._id || it.id) !== id);
-          await saveChecklist(trip.id, updated);
-        }
-        if (editingId === id) cancelEdit();
-      } catch (e) {
-        setErr(e?.message || "Failed to delete task");
-      }
+    if (!armed) return setArmed(true);
+    const id = idOf(item);
+    setErr("");
+    try {
+      // remove every copy: its own document and/or the entry in the trip document's array
+      await Promise.all([
+        item._id ? deleteChecklistItem(trip.id, id) : null,
+        inDoc(id) ? saveChecklist(trip.id, withoutDoc(id)) : null,
+      ]);
+      cancelEdit();
+    } catch (e) {
+      setArmed(false);
+      setErr(e?.message || "Failed to delete task");
     }
   };
 
   return (
-    <section className="checklist-page">
-      <div className="card">
-        <h3>Pending checklist 📋</h3>
-        <p className="note sub">
-          Shared checklist for everyone on this trip. Anyone can view, add, and edit tasks.
-        </p>
-
-        {/* Add item form */}
-        <form className="chk-add" onSubmit={handleAdd}>
-          <div className="chk-fields">
-            <div className="f">
-              <label htmlFor="chk-date">Due date</label>
-              <input
-                id="chk-date"
-                type="date"
-                value={newDate}
-                onChange={(e) => setNewDate(e.target.value)}
-                disabled={!canEdit}
-              />
-            </div>
-            <div className="f">
-              <label htmlFor="chk-text">What needs to be done?</label>
-              <input
-                id="chk-text"
-                type="text"
-                placeholder="e.g. Book cab, pack jackets"
-                maxLength={200}
-                value={newText}
-                onChange={(e) => setNewText(e.target.value)}
-                disabled={!canEdit}
-                required
-              />
-            </div>
-          </div>
-          <button
-            type="submit"
-            className="btn"
-            disabled={!newText.trim() || !canEdit || saving}
-          >
-            {saving ? "Adding…" : "+ Add task"}
-          </button>
-          <div className="err">{err}</div>
-        </form>
-
-        {/* Filter chips */}
-        <div className="chips">
-          <button
-            type="button"
-            className={`chip ${filter === "all" ? "on" : ""}`}
-            onClick={() => setFilter("all")}
-          >
-            All ({items.length})
-          </button>
-          <button
-            type="button"
-            className={`chip ${filter === "pending" ? "on" : ""}`}
-            onClick={() => setFilter("pending")}
-          >
-            Pending ({pendingCount})
-          </button>
-          <button
-            type="button"
-            className={`chip ${filter === "done" ? "on" : ""}`}
-            onClick={() => setFilter("done")}
-          >
-            Completed ({doneCount})
-          </button>
+    <section>
+      {/* filter chips, laid out like the Expenses filters (no card) */}
+      <div className="filters">
+        <div className="chiprow" role="group" aria-label="Filter tasks">
+          {[["all", "All", items.length], ["pending", "Pending", pendingCount], ["done", "Completed", doneCount]].map(
+            ([key, label, count]) => (
+              <button
+                key={key}
+                type="button"
+                className={`chip ${filter === key ? "on" : ""}`}
+                aria-pressed={filter === key}
+                onClick={() => setFilter(key)}
+              >
+                {label} ({count})
+              </button>
+            )
+          )}
         </div>
       </div>
+      {/* while a task is open for editing, its errors show next to it instead */}
+      <div className="err">{!editingId && err}</div>
 
       {/* Checklist items */}
       <div className="card list">
         {!displayed.length ? (
           <div className="empty">
-            {items.length === 0
-              ? "No tasks yet. Add your first task above!"
-              : filter === "pending"
-              ? "🎉 No pending tasks! Everything is done."
-              : "No completed tasks yet."}
+            {emptyText}
           </div>
         ) : (
           <ul className="chk-list" aria-label="Checklist items">
@@ -261,14 +199,8 @@ export default function Checklist({ trip, items = [], canEdit = true }) {
                         />
                       </div>
                     </div>
+                    <div className="err">{err}</div>
                     <div className="actions">
-                      <button
-                        type="button"
-                        className="btn danger"
-                        onClick={() => handleDelete(id)}
-                      >
-                        Delete
-                      </button>
                       <button
                         type="button"
                         className="btn ghost"
@@ -283,6 +215,15 @@ export default function Checklist({ trip, items = [], canEdit = true }) {
                         disabled={!editText.trim()}
                       >
                         Save
+                      </button>
+                    </div>
+                    <div className="actions">
+                      <button
+                        type="button"
+                        className="btn danger"
+                        onClick={() => handleDelete(item)}
+                      >
+                        {armed ? "Tap again to delete" : "Delete task"}
                       </button>
                     </div>
                   </li>
@@ -325,6 +266,11 @@ export default function Checklist({ trip, items = [], canEdit = true }) {
           </ul>
         )}
       </div>
+
+      {/* floating button, same as "Add expense"; opens TaskSheet */}
+      <button type="button" className="fab" onClick={onAdd} disabled={!canEdit}>
+        <span className="plus" aria-hidden="true">＋</span>Add task
+      </button>
     </section>
   );
 }

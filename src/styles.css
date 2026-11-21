@@ -398,12 +398,9 @@ fieldset.f{border:0;padding:0;margin:0 0 12px;min-width:0}
 @media (hover:hover){.pick button:not(.on):hover{border-color:var(--green)}}
 
 /* ---------- checklist tab ---------- */
-/* fields reuse the shared .f styles; this only lays them out (date | task, stacked on phones) */
-.chk-add{margin-top:12px}
-.chk-add .btn{width:100%}
+/* task fields (TaskSheet + inline edit) reuse the shared .f styles; this only lays them out: date | task, stacked on phones */
 .chk-fields{display:grid;grid-template-columns:170px 1fr;column-gap:10px}
 @media (max-width:540px){.chk-fields{grid-template-columns:1fr}}
-.chk-add + .chips{margin-top:14px}
 /* rows follow the expense list: .card.list, 12px/16px padding, thin dividers */
 .chk-list{list-style:none;padding:0;margin:0}
 .chk-item{display:flex;align-items:flex-start;gap:12px;padding:12px 16px}
@@ -420,6 +417,8 @@ fieldset.f{border:0;padding:0;margin:0 0 12px;min-width:0}
 .chk-actions{flex:none}
 .chk-item.editing{display:block;background:var(--bg)}
 .chk-item.editing .actions{margin-top:4px}
+.chk-item.editing .actions + .actions{margin-top:8px}
+.chk-item.editing .err{margin:0 0 8px}
 
 /* ---------- motion preferences ---------- */
 @media (prefers-reduced-motion:reduce){

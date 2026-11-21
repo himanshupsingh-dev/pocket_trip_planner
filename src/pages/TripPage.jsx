@@ -16,6 +16,7 @@ import TripSheet from "../components/TripSheet.jsx";
 import ShareSheet from "../components/ShareSheet.jsx";
 import DaySheet from "../components/DaySheet.jsx";
 import BudgetSheet from "../components/BudgetSheet.jsx";
+import TaskSheet from "../components/TaskSheet.jsx";
 
 const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) + "% of budget" : "");
 
@@ -250,7 +251,7 @@ export default function TripPage({ tripId, view }) {
         </div>
       </div>
 
-      <div className={`wrap ${view === "expenses" ? "hasfab" : ""}`}>
+      <div className={`wrap ${view === "expenses" || view === "checklist" ? "hasfab" : ""}`}>
         <BudgetTiles trip={trip} sum={mySum} share={meValid ? stats.share[me] || 0 : null} />
 
         {view === "plan" && (
@@ -258,7 +259,8 @@ export default function TripPage({ tripId, view }) {
             onEditDay={(day) => setSheet({ type: "day", day })} />
         )}
         {view === "checklist" && (
-          <Checklist trip={trip} items={allChecklistItems} canEdit={canEdit} />
+          <Checklist trip={trip} items={allChecklistItems} canEdit={canEdit}
+            onAdd={() => canEdit && setSheet({ type: "task" })} />
         )}
         {view === "expenses" && (
           <Expenses
@@ -296,6 +298,7 @@ export default function TripPage({ tripId, view }) {
       {sheet?.type === "share" && <ShareSheet trip={trip} onClose={close} />}
       {sheet?.type === "day" && <DaySheet trip={trip} days={days} day={sheet.day} onClose={close} />}
       {sheet?.type === "budget" && <BudgetSheet trip={trip} expenses={expenses} onClose={close} />}
+      {sheet?.type === "task" && <TaskSheet trip={trip} onClose={close} />}
     </>
   );
 }
