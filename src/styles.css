@@ -82,8 +82,10 @@ select.filter{flex:1;min-width:120px;border:1px solid var(--line);border-radius:
 .bal{font-weight:700;text-align:right;align-self:center;grid-row:span 2}
 .bal.pos{color:var(--ok)}.bal.neg{color:var(--red)}
 .xfer{display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;background:var(--redbg);margin-top:8px;font-weight:600}
+.xfer.rec{background:var(--okbg)}
 .xfer .arrow{color:var(--mute);font-weight:400}
-.xfer .a{margin-left:auto;white-space:nowrap}
+.xfer .a{margin-left:auto;white-space:nowrap;color:var(--red)}
+.xfer.rec .a{color:var(--ok)}
 .allok{background:var(--okbg);color:var(--ok);padding:12px;border-radius:10px;font-weight:600;text-align:center}
 .bars .row{display:grid;grid-template-columns:110px 1fr 80px;gap:8px;align-items:center;font-size:13px;margin:6px 0}
 .bars .track{background:var(--green2);border-radius:6px;height:10px;overflow:hidden}
@@ -120,8 +122,17 @@ fieldset.f{border:0;padding:0;margin:0 0 12px;min-width:0}
 .mrow{display:flex;gap:6px;margin-bottom:6px}
 .mrow input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}
 .x{flex:none;width:42px;border:1px solid var(--line);background:#fff;border-radius:10px;font-size:20px;line-height:1;color:var(--mute);cursor:pointer}
-.estrow{display:grid;grid-template-columns:1fr 140px;gap:10px;align-items:center;margin-bottom:6px}
+.x.small{width:36px;height:38px;padding:0;font-size:18px;display:grid;place-items:center}
+.catrow{display:grid;grid-template-columns:36px 1fr 36px;gap:8px;align-items:center;margin-bottom:6px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:4px 6px 4px 10px}
+.catrow .caticon-tag{font-size:18px;text-align:center}
+.catrow .catname-tag{font-weight:600;font-size:14px}
+.catrow .x.small{border:0;background:transparent}
+.estrow{display:grid;grid-template-columns:1fr 110px 36px;gap:8px;align-items:center;margin-bottom:6px}
 .estrow input{border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:#fff;width:100%;text-align:right;font-variant-numeric:tabular-nums}
+.estrow .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.addcat{display:flex;gap:6px;align-items:center;margin-top:8px}
+.addcat .caticon{width:48px;text-align:center;font-size:18px;padding:8px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.addcat .catname{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:#fff}
 .linkbox{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg);font-size:13px}
 /* budget tab: meters on a shared scale */
 .card h3{font-size:19px}

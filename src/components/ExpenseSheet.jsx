@@ -40,6 +40,7 @@ export default function ExpenseSheet({ trip, exp, me, members, nameOf, onClose }
     const d = desc.trim(), a = Number(amount) || 0;
     if (!d) return setErr("Add a short description.");
     if (a < 0) return setErr("Amount can't be negative.");
+    if (!payer) return setErr("Please choose who you are first before adding an expense.");
     if (!split.size) return setErr("Pick at least one person to split with.");
     setSaving(true);
     try {
