@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { templateList } from "../trips/index.js";
 import { knownTrips, rememberTrip, isDevMode, setDevMode, checkDevPassword, getUserName } from "../lib/device.js";
 import { isConfigured } from "../lib/db.js";
-import { fmtRange } from "../lib/dates.js";
+import { fmtRange, tripStatus, todayISO } from "../lib/dates.js";
 import TripSheet from "../components/TripSheet.jsx";
 import Sheet from "../components/Sheet.jsx";
 
@@ -24,6 +24,7 @@ export default function Home() {
   // Trips opened or created on this device, plus built-in ones not opened yet.
   const mine = knownTrips();
   const trips = [...mine, ...templateList().filter((t) => !mine.some((m) => m.id === t.id))];
+  const today = todayISO();
 
   const onCreated = (trip) => {
     rememberTrip(trip);
@@ -52,11 +53,11 @@ export default function Home() {
 
   return (
     <>
-      <header className="hero">
+      <header className="hero home">
         {devActive ? (
           <div className="devbadge">🛠️ Developer mode active</div>
         ) : (
-          currentDeviceUser && <div className="devbadge" style={{ background: "rgba(255,255,255,.15)" }}>👤 {currentDeviceUser}</div>
+          currentDeviceUser && <div className="devbadge user">👤 {currentDeviceUser}</div>
         )}
         <div className="kick">Plans · budgets · shared expenses</div>
         <h1>Pocket Trip Planner 🧳</h1>
@@ -64,19 +65,23 @@ export default function Home() {
       </header>
 
       <div className="wrap trips">
-        {trips.map((t) => (
-          <a key={t.id} className="card trip" href={`#/${t.id}/plan`}>
-            <div className="ic">{t.emoji || "🧳"}</div>
-            <div className="mid">
-              <h3>{t.title}</h3>
-              {t.startDate && <div className="s">{fmtRange(t.startDate, t.endDate)}</div>}
-              {t.subtitle && <div className="s">{t.subtitle}</div>}
-            </div>
-            <span className="go" aria-hidden="true">›</span>
-          </a>
-        ))}
+        {trips.map((t) => {
+          const st = tripStatus(t.startDate, t.endDate, today);
+          return (
+            <a key={t.id} className="card trip" href={`#/${t.id}/plan`}>
+              <div className="ic" aria-hidden="true">{t.emoji || "🧳"}</div>
+              <div className="mid">
+                <h3>{t.title}</h3>
+                {t.startDate && <div className="s">{fmtRange(t.startDate, t.endDate)}</div>}
+                {t.subtitle && <div className="s">{t.subtitle}</div>}
+                {st && <span className={`tpill ${st.cls}`}>{st.text}</span>}
+              </div>
+              <span className="go" aria-hidden="true">›</span>
+            </a>
+          );
+        })}
 
-        <button className="btn newtrip" onClick={() => setCreating(true)} disabled={!isConfigured}>
+        <button type="button" className="btn newtrip" onClick={() => setCreating(true)} disabled={!isConfigured}>
           ＋ New trip
         </button>
         <p className="note center">
@@ -111,9 +116,8 @@ export default function Home() {
       {creating && <TripSheet onClose={() => setCreating(false)} onSaved={onCreated} />}
 
       {showDevModal && (
-        <Sheet as="form" onClose={() => setShowDevModal(false)} onSubmit={handleDevSubmit}>
-          <h2>🛠️ Developer Mode</h2>
-          <p className="note" style={{ margin: "-4px 0 14px" }}>
+        <Sheet as="form" title="🛠️ Developer Mode" onClose={() => setShowDevModal(false)} onSubmit={handleDevSubmit}>
+          <p className="note lead">
             Enter the developer password to activate global developer mode.
           </p>
           <div className="f">

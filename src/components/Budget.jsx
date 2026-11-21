@@ -79,7 +79,7 @@ export default function Budget({ sum, canEdit, onEdit }) {
 
           <div className="card">
             <h3>Estimated vs actual</h3>
-            <p className="note" style={{ margin: "2px 0 0" }}>By category, largest first.</p>
+            <p className="note sub">By category, largest first.</p>
             <div className="legend">
               <span><i className="sw act" />Actual</span>
               <span><i className="sw est" />Estimated</span>
@@ -90,7 +90,7 @@ export default function Budget({ sum, canEdit, onEdit }) {
           </div>
         </>
       )}
-      <button className="btn ghost wide" disabled={!canEdit} onClick={onEdit}>✏️ Edit budget &amp; estimates</button>
+      <button type="button" className="btn ghost wide" disabled={!canEdit} onClick={onEdit}>✏️ Edit budget &amp; estimates</button>
     </section>
   );
 }

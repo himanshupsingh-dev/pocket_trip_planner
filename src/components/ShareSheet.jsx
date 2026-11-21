@@ -17,9 +17,8 @@ export default function ShareSheet({ trip, onClose }) {
   };
 
   return (
-    <Sheet onClose={onClose}>
-      <h2>Invite members 🔗</h2>
-      <p className="note" style={{ marginTop: -6 }}>
+    <Sheet title="Invite members 🔗" onClose={onClose}>
+      <p className="note lead">
         Send this link to the people on this trip. They pick their name once, then can see the plan and add expenses.
       </p>
       <input className="linkbox" readOnly value={url} aria-label="Trip link" onFocus={(e) => e.target.select()} />

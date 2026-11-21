@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getTemplate, normalizeTrip, templateDoc, templateDays } from "../trips/index.js";
 import { compute, inr, budgetSummary } from "../lib/money.js";
 import { isConfigured, watchTrip, watchList, seedTrip } from "../lib/db.js";
 import { getMe, setMe as storeMe, rememberTrip, getUserName, setUserName, isDevMode } from "../lib/device.js";
-import { fmtRange } from "../lib/dates.js";
+import { fmtRange, tripStatus } from "../lib/dates.js";
 import Plan from "../components/Plan.jsx";
 import Expenses from "../components/Expenses.jsx";
 import Budget from "../components/Budget.jsx";
@@ -24,12 +24,15 @@ function BudgetTiles({ trip, sum }) {
   if (over) remainingNote = "⚠ over budget";
   else if (sum.budget) remainingNote = "left to spend";
   const estNote = sum.budget > 0 && sum.estimated === sum.budget ? "sum of categories" : pct(sum.estimated, sum.budget);
+  const used = sum.budget > 0 ? Math.min(100, (sum.actual / sum.budget) * 100) : 0;
   return (
     <a className="stats" href={`#/${trip.id}/budget`} aria-label="Open budget">
       <div className="stat"><span>Budget</span><b>{sum.budget ? inr(sum.budget) : "Not set"}</b>
         <small>{sum.budget ? "total for the trip" : "tap to set"}</small></div>
       <div className="stat"><span>Estimated</span><b>{inr(sum.estimated)}</b><small>{estNote}</small></div>
-      <div className="stat"><span>Actual</span><b>{inr(sum.actual)}</b><small>{pct(sum.actual, sum.budget) || "spent so far"}</small></div>
+      <div className="stat"><span>Actual</span><b>{inr(sum.actual)}</b><small>{pct(sum.actual, sum.budget) || "spent so far"}</small>
+        {sum.budget > 0 && <i className={`mini ${over ? "over" : ""}`} aria-hidden="true"><i style={{ width: used + "%" }} /></i>}
+      </div>
       <div className={`stat ${over ? "neg" : ""}`}><span>Remaining</span>
         <b>{sum.budget ? inr(sum.remaining) : "—"}</b>
         <small>{remainingNote}</small></div>
@@ -40,8 +43,11 @@ function BudgetTiles({ trip, sum }) {
 function Message({ children }) {
   return (
     <>
-      <header className="hero"><nav className="crumb"><a href="#/">← All trips</a></nav><h1>Pocket Trip Planner 🧳</h1></header>
-      <div className="wrap"><div className="card empty" style={{ marginTop: -48 }}>{children}</div></div>
+      <header className="hero compact">
+        <div className="herobar"><a className="back" href="#/">← All trips</a></div>
+        <h1>Pocket Trip Planner 🧳</h1>
+      </header>
+      <div className="wrap"><div className="card empty overlap">{children}</div></div>
     </>
   );
 }
@@ -56,6 +62,8 @@ export default function TripPage({ tripId, view }) {
   const [me, setMe] = useState(() => getMe(tripId));
   const [devMode, setDevMode] = useState(() => isDevMode());
   const [sheet, setSheet] = useState(null);
+  const titleRef = useRef(null);
+  const [scrolled, setScrolled] = useState(false);  // trip title scrolled out of view → show the slim top bar
 
   useEffect(() => {
     const onDev = (e) => setDevMode(e.detail);
@@ -95,6 +103,15 @@ export default function TripPage({ tripId, view }) {
     document.title = `${trip.title} · Pocket Trip Planner`;
   }, [trip]);
 
+  const hasTrip = !!trip;
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setScrolled(!e.isIntersecting && e.boundingClientRect.top < 0));
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasTrip]);
+
   const meValid = !!me && members.some((m) => m.id === me);
 
   // When members load, auto-match if device has a default user name and no active member set
@@ -111,10 +128,12 @@ export default function TripPage({ tripId, view }) {
 
   // first visit: ask who you are using member buttons if not matched yet
   useEffect(() => {
-    if (dbTrip && !meValid) {
-      setSheet((s) => s || { type: "who" });
-    }
-  }, [!!dbTrip, meValid]);
+    if (!dbTrip || meValid) return;
+    // the auto-match above runs in this same render; don't ask if it is about to pick a member
+    const storedName = getUserName().trim().toLowerCase();
+    if (!me && storedName && members.some((m) => m.name.trim().toLowerCase() === storedName)) return;
+    setSheet((s) => s || { type: "who" });
+  }, [!!dbTrip, meValid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stats = useMemo(() => compute(members, expenses), [members, expenses]);
   const sum = useMemo(() => (trip ? budgetSummary(trip, stats) : null), [trip, stats]);
@@ -128,6 +147,18 @@ export default function TripPage({ tripId, view }) {
 
   const nameOf = (id) => members.find((m) => m.id === id)?.name || "—";
   const canEdit = isConfigured && !!dbTrip;
+  const phase = tripStatus(trip.startDate, trip.endDate);
+  const initial = meValid ? nameOf(me).trim().charAt(0).toUpperCase() : "?";
+  // Switching identity is only allowed in developer mode; everyone else picks once and is then bound to that name.
+  const canSwitch = devMode || !meValid;
+  let whoText = "Select your name", whoLabel = "Select your name";
+  if (devMode) {
+    whoText = meValid ? `${nameOf(me)} (Dev)` : "Select user (Dev)";
+    whoLabel = meValid ? `You are ${nameOf(me)} — switch user (developer mode)` : "Select user (developer mode)";
+  } else if (meValid) {
+    whoText = nameOf(me);
+    whoLabel = `You are ${nameOf(me)}`;
+  }
 
   const chooseMe = (id) => {
     setMe(id);
@@ -146,35 +177,55 @@ export default function TripPage({ tripId, view }) {
     else setSheet({ type: "exp", exp });
   };
 
+  const openWho = () => setSheet({ type: "who" });
   const close = () => setSheet(null);
 
   return (
     <>
-      <header className="hero">
-        <nav className="crumb"><a href="#/">← All trips</a></nav>
-        {trip.subtitle && <div className="kick">{trip.subtitle}</div>}
-        <h1>{trip.title} {trip.emoji}</h1>
-        {trip.startDate && <p>{fmtRange(trip.startDate, trip.endDate)}</p>}
-        <div className="heroacts">
-          {devMode ? (
-            <button className="hbtn" onClick={() => setSheet({ type: "who" })}>
-              👤 {meValid ? `${nameOf(me)} · change (Dev)` : "Select user (Dev)"}
-            </button>
-          ) : meValid ? (
-            <span className="hbtn" style={{ cursor: "default" }}>
-              👤 {nameOf(me)}
-            </span>
-          ) : (
-            <button className="hbtn" onClick={() => setSheet({ type: "who" })}>
-              👤 Select your name
-            </button>
-          )}
-          {canEdit && <button className="hbtn" onClick={() => setSheet({ type: "share" })}>🔗 Invite</button>}
-          {canEdit && <button className="hbtn" onClick={() => setSheet({ type: "trip" })}>⚙️ Edit trip</button>}
+      <header className={`hero ${view === "plan" ? "" : "compact"}`}>
+        <div className="herobar">
+          <a className="back" href="#/">← All trips</a>
+          <div className="heroacts">
+            {canSwitch ? (
+              <button type="button" className="hbtn" onClick={openWho} aria-label={whoLabel}>
+                <span aria-hidden="true">{devMode ? "🛠️" : "👤"}</span><span className="who">{whoText}</span>
+              </button>
+            ) : (
+              <span className="hbtn static" title={whoLabel}>
+                <span aria-hidden="true">👤</span><span className="who">{whoText}</span>
+              </span>
+            )}
+            {canEdit && (
+              <button type="button" className="hbtn icon" onClick={() => setSheet({ type: "share" })}>
+                <span aria-hidden="true">🔗</span><span className="lbl">Invite</span>
+              </button>
+            )}
+            {canEdit && (
+              <button type="button" className="hbtn icon" onClick={() => setSheet({ type: "trip" })}>
+                <span aria-hidden="true">⚙️</span><span className="lbl">Edit trip</span>
+              </button>
+            )}
+          </div>
         </div>
+        {trip.subtitle && <div className="kick">{trip.subtitle}</div>}
+        <h1 ref={titleRef}>{trip.title} {trip.emoji}</h1>
+        {trip.startDate && <p className="dates">{fmtRange(trip.startDate, trip.endDate)}</p>}
+        {phase && <span className={`hpill ${phase.cls}`}>{phase.text}</span>}
       </header>
 
-      <div className="wrap">
+      <div className={`topbar ${scrolled ? "show" : ""}`}>
+        <div className="in">
+          <a className="tb-back" href="#/" aria-label="All trips">←</a>
+          <span className="tt">{trip.emoji} {trip.title}</span>
+          {canSwitch ? (
+            <button type="button" className="tb-who" onClick={openWho} aria-label={whoLabel}>{initial}</button>
+          ) : (
+            <span className="tb-who" role="img" aria-label={whoLabel}>{initial}</span>
+          )}
+        </div>
+      </div>
+
+      <div className={`wrap ${view === "expenses" ? "hasfab" : ""}`}>
         <BudgetTiles trip={trip} sum={sum} />
 
         {view === "plan" && (
@@ -183,8 +234,8 @@ export default function TripPage({ tripId, view }) {
         )}
         {view === "expenses" && (
           <Expenses
-            trip={trip} members={members} expenses={expenses} status={status} nameOf={nameOf}
-            onAdd={() => openExpense(null)} onOpen={openExpense}
+            trip={trip} members={members} expenses={expenses} status={status} nameOf={nameOf} me={me}
+            canEdit={canEdit} onAdd={() => openExpense(null)} onOpen={openExpense}
           />
         )}
         {view === "budget" && (
@@ -193,7 +244,7 @@ export default function TripPage({ tripId, view }) {
         {view === "settle" && (
           <Settle
             trip={trip} members={members} stats={stats} expenses={expenses} nameOf={nameOf} me={me}
-            onSelectMe={() => setSheet({ type: "who" })}
+            onSelectMe={openWho}
             canEdit={canEdit} onEditTrip={() => setSheet({ type: "trip" })}
           />
         )}

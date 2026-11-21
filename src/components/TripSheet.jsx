@@ -122,8 +122,7 @@ export default function TripSheet({ trip, expenses = [], onClose, onSaved }) {
   };
 
   return (
-    <Sheet as="form" onClose={onClose} onSubmit={submit}>
-      <h2>{isNew ? "New trip ✨" : "Edit trip"}</h2>
+    <Sheet as="form" title={isNew ? "New trip ✨" : "Edit trip"} onClose={onClose} onSubmit={submit}>
       <div className="trow">
         <div className="f">
           <label htmlFor="t-emoji">Icon</label>

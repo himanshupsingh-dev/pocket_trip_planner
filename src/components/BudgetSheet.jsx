@@ -66,19 +66,12 @@ export default function BudgetSheet({ trip, expenses = [], onClose }) {
   };
 
   return (
-    <Sheet as="form" onClose={onClose} onSubmit={submit}>
-      <h2>Budget &amp; estimates</h2>
+    <Sheet as="form" title="Budget & estimates" onClose={onClose} onSubmit={submit}>
       <div className="f">
         <label htmlFor="b-total">Total trip budget (₹)</label>
-        <input
-          id="b-total"
-          type="text"
-          readOnly
-          value={total ? inr(total) : "₹0"}
-          aria-label="Total trip budget"
-          style={{ background: "var(--bg)", fontWeight: 700, color: "var(--ink)", cursor: "default" }}
-        />
-        <small className="note" style={{ margin: "4px 0 0" }}>
+        <input id="b-total" className="readonly" type="text" readOnly value={total ? inr(total) : "₹0"}
+          aria-describedby="b-total-help" />
+        <small id="b-total-help" className="note hint">
           Calculated automatically as the sum of all category estimates below.
         </small>
       </div>
@@ -104,7 +97,7 @@ export default function BudgetSheet({ trip, expenses = [], onClose }) {
             <button type="button" className="btn ghost small" onClick={() => { setAdding(false); setErr(""); }}>Cancel</button>
           </div>
         ) : (
-          <button type="button" className="btn ghost small" style={{ marginTop: 6 }} onClick={() => { setAdding(true); setErr(""); }}>
+          <button type="button" className="btn ghost small addbtn" onClick={() => { setAdding(true); setErr(""); }}>
             ＋ Add category
           </button>
         )}

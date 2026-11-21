@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Sheet from "./Sheet.jsx";
 import { saveDay, deleteDay } from "../lib/db.js";
-import { addDays } from "../lib/dates.js";
+import { addDays, todayISO } from "../lib/dates.js";
 
 // Places are typed one per line; a line ending in ":" starts a heading ("Morning:").
 export function parseGroups(text) {
@@ -22,11 +22,9 @@ export function parseGroups(text) {
 }
 
 const groupsToText = (groups = []) => groups.map((g) => `${g.h}:\n${(g.items || []).join("\n")}`).join("\n\n");
-const today = () => new Date().toISOString().slice(0, 10);
-
 export default function DaySheet({ trip, days, day, onClose }) {
   const lastDate = days.map((d) => d.date).filter(Boolean).sort().pop();
-  const [date, setDate] = useState(day?.date || (lastDate ? addDays(lastDate, 1) : trip.startDate || today()));
+  const [date, setDate] = useState(day?.date || (lastDate ? addDays(lastDate, 1) : trip.startDate || todayISO()));
   const [title, setTitle] = useState(day?.title || "");
   const [route, setRoute] = useState(day?.route || "");
   const [stay, setStay] = useState(day?.stay || "");
@@ -69,8 +67,7 @@ export default function DaySheet({ trip, days, day, onClose }) {
   };
 
   return (
-    <Sheet as="form" onClose={onClose} onSubmit={submit}>
-      <h2>{day ? "Edit day" : "Add day"}</h2>
+    <Sheet as="form" title={day ? "Edit day" : "Add day"} onClose={onClose} onSubmit={submit}>
       <div className="two">
         <div className="f">
           <label htmlFor="d-date">Date</label>
