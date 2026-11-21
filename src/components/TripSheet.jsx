@@ -15,6 +15,12 @@ export default function TripSheet({ trip, expenses = [], onClose, onSaved }) {
   const [endDate, setEndDate] = useState(trip?.endDate || "");
   const [budget, setBudget] = useState("");
   const [members, setMembers] = useState(trip?.members || [{ id: "m1", name: "" }, { id: "m2", name: "" }]);
+  const [categories, setCategories] = useState(() =>
+    trip ? Object.entries(trip.categories).map(([name, icon]) => ({ name, icon })) : DEFAULT_CATEGORIES
+  );
+  const [catAdding, setCatAdding] = useState(false);
+  const [newCatIcon, setNewCatIcon] = useState("");
+  const [newCatName, setNewCatName] = useState("");
   const [places, setPlaces] = useState(trip ? trip.places.join("\n") : "");
   const [planNote, setPlanNote] = useState(trip?.planNote || "");
   const [err, setErr] = useState("");
@@ -39,6 +45,32 @@ export default function TripSheet({ trip, expenses = [], onClose, onSaved }) {
     setMembers(members.filter((_, j) => j !== i));
   };
 
+  const catInUse = (name) =>
+    expenses.some((e) => (Number(e.amount) || 0) > 0 && e.category === name);
+
+  const removeCategory = (name) => {
+    if (categories.length <= 1) return setErr("You need at least one category.");
+    if (catInUse(name)) {
+      return setErr(`"${name}" is part of some expenses, so it can't be removed. Change those expenses first.`);
+    }
+    setCategories(categories.filter((c) => c.name !== name));
+    setErr("");
+  };
+
+  const addCategory = () => {
+    const n = newCatName.trim();
+    if (!n) return setErr("Enter a category name.");
+    if (categories.some((c) => c.name.toLowerCase() === n.toLowerCase())) {
+      return setErr(`A category named "${n}" already exists.`);
+    }
+    const icon = newCatIcon.trim() || "📌";
+    setCategories([...categories, { name: n, icon }]);
+    setNewCatName("");
+    setNewCatIcon("");
+    setCatAdding(false);
+    setErr("");
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     const t = title.trim();
@@ -52,6 +84,8 @@ export default function TripSheet({ trip, expenses = [], onClose, onSaved }) {
     if (b < 0) return setErr("Budget can't be negative.");
 
     const placeList = lines(places);
+    const cleanedCats = categories.map((c) => ({ name: c.name.trim(), icon: c.icon.trim() || "📌" }));
+    if (!cleanedCats.length) return setErr("Add at least one category.");
     const fields = {
       emoji: emoji.trim() || "🧳", title: t, subtitle: subtitle.trim(), startDate, endDate,
       members: named, places: placeList.length ? placeList : ["On the way"],
@@ -60,10 +94,19 @@ export default function TripSheet({ trip, expenses = [], onClose, onSaved }) {
     try {
       if (isNew) {
         const id = newTripId(t);
-        await createTrip(id, { ...fields, budget: b, estimates: {}, categories: DEFAULT_CATEGORIES, planNote: "" });
+        await createTrip(id, { ...fields, budget: b, estimates: {}, categories: cleanedCats, planNote: "" });
         onSaved?.({ id, ...fields });
       } else {
-        await updateTrip(trip.id, { ...fields, planNote: planNote.trim() });
+        const catNames = new Set(cleanedCats.map((c) => c.name));
+        const updatedEstimates = Object.fromEntries(
+          Object.entries(trip.estimates || {}).filter(([k]) => catNames.has(k))
+        );
+        await updateTrip(trip.id, {
+          ...fields,
+          categories: cleanedCats,
+          estimates: updatedEstimates,
+          planNote: planNote.trim(),
+        });
         onClose();
       }
     } catch {
@@ -118,6 +161,31 @@ export default function TripSheet({ trip, expenses = [], onClose, onSaved }) {
           </div>
         ))}
         <button type="button" className="btn ghost small" onClick={addMember}>＋ Add member</button>
+      </fieldset>
+      <fieldset className="f">
+        <legend>Categories</legend>
+        {categories.map((c) => (
+          <div className="catrow" key={c.name}>
+            <span className="caticon-tag">{c.icon}</span>
+            <span className="catname-tag">{c.name}</span>
+            <button type="button" className="x small" onClick={() => removeCategory(c.name)} aria-label={`Remove ${c.name}`}>×</button>
+          </div>
+        ))}
+        {catAdding ? (
+          <div className="addcat">
+            <input className="caticon" value={newCatIcon} maxLength={4} placeholder="🏷️"
+              aria-label="Category icon" onChange={(e) => setNewCatIcon(e.target.value)} />
+            <input className="catname" value={newCatName} maxLength={30} placeholder="Category name"
+              autoFocus aria-label="Category name" onChange={(e) => setNewCatName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCategory(); } }} />
+            <button type="button" className="btn small" onClick={addCategory}>Add</button>
+            <button type="button" className="btn ghost small" onClick={() => { setCatAdding(false); setErr(""); }}>Cancel</button>
+          </div>
+        ) : (
+          <button type="button" className="btn ghost small" onClick={() => { setCatAdding(true); setErr(""); }}>
+            ＋ Add category
+          </button>
+        )}
       </fieldset>
       <div className="f">
         <label htmlFor="t-places">Places (one per line, used to tag expenses)</label>

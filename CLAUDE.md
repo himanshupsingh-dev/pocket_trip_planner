@@ -55,7 +55,7 @@ Firestore cannot store nested arrays, so groups and categories are arrays of obj
 - A new expense's payer is the current device's member; editing keeps the original payer; an unfilled row (amount 0, no payer — e.g. seeded hotels) is claimed by whoever fills it and its split defaults to all current members.
 - `settle()` is a direct pairwise settlement of debts between members who shared expenses (netting out mutual debts per pair, replacing greedy multi-party routing). In `Settle.jsx`, settlements and balances are scoped to the active user (`me`): only transfers involving the active user are shown, and unpaid balances between other group members are hidden.
 - `budgetSummary()`: Budget = sum of per-category estimates (falls back to trip.budget if unestimated); Estimated = sum of per-category estimates; Actual = total of paid expenses; Remaining = budget − actual.
-- `TripSheet` blocks removing a member who is payer/splitter on any expense with amount > 0.
+- `TripSheet` blocks removing a member who is payer/splitter on any expense with amount > 0. Categories can be added or removed in `BudgetSheet` and `TripSheet`; removing a category is blocked if any expense with amount > 0 uses it.
 
 **Dates** are stored as `YYYY-MM-DD` strings; weekdays and "Day N" labels are computed at render time (`src/lib/dates.js`, `Plan.jsx` sorts days by date then createdAt). Currency is INR only, formatted by `inr()`.
 

@@ -175,7 +175,7 @@ export default function TripPage({ tripId, view }) {
       {sheet?.type === "trip" && <TripSheet trip={trip} expenses={expenses} onClose={close} />}
       {sheet?.type === "share" && <ShareSheet trip={trip} onClose={close} />}
       {sheet?.type === "day" && <DaySheet trip={trip} days={days} day={sheet.day} onClose={close} />}
-      {sheet?.type === "budget" && <BudgetSheet trip={trip} onClose={close} />}
+      {sheet?.type === "budget" && <BudgetSheet trip={trip} expenses={expenses} onClose={close} />}
     </>
   );
 }
