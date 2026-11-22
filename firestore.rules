@@ -9,37 +9,46 @@ service cloud.firestore {
           && (!('estimates' in d) || d.estimates is map);
     }
 
+    // Trip ids whose link reached people outside the group. The trip was copied to a new
+    // link (scripts/move-trip.mjs), and nobody can open or change the old id any more.
+    function retired(tripId) {
+      return tripId in ['kerala-2026'];
+    }
+
     // Private-link model: a trip opens only for someone who knows its id (it's in the
     // shared link). Trips can't be listed or searched, and can't be deleted from the app.
     match /trips/{tripId} {
-      allow get: if true;
+      allow get: if !retired(tripId);
       allow list: if false;
-      allow create, update: if validTrip(request.resource.data);
+      allow create, update: if !retired(tripId) && validTrip(request.resource.data);
       allow delete: if false;
 
       match /expenses/{id} {
-        allow read: if true;
-        allow create, update: if request.resource.data.amount is number
+        allow read: if !retired(tripId);
+        allow create, update: if !retired(tripId)
+                              && request.resource.data.amount is number
                               && request.resource.data.amount >= 0
                               && request.resource.data.desc is string
                               && request.resource.data.desc.size() <= 120;
-        allow delete: if true;
+        allow delete: if !retired(tripId);
       }
 
       match /days/{id} {
-        allow read: if true;
-        allow create, update: if request.resource.data.title is string
+        allow read: if !retired(tripId);
+        allow create, update: if !retired(tripId)
+                              && request.resource.data.title is string
                               && request.resource.data.title.size() <= 120
                               && request.resource.data.groups is list;
-        allow delete: if true;
+        allow delete: if !retired(tripId);
       }
 
       match /checklist/{id} {
-        allow read: if true;
-        allow create, update: if request.resource.data.text is string
+        allow read: if !retired(tripId);
+        allow create, update: if !retired(tripId)
+                              && request.resource.data.text is string
                               && request.resource.data.text.size() > 0
                               && request.resource.data.text.size() <= 200;
-        allow delete: if true;
+        allow delete: if !retired(tripId);
       }
     }
 

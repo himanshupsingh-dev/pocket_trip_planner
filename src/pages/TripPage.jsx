@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getTemplate, normalizeTrip, templateDoc, templateDays } from "../trips/index.js";
 import { compute, inr, budgetSummary, sharedCategories } from "../lib/money.js";
 import { isConfigured, watchTrip, watchList, seedTrip } from "../lib/db.js";
-import { getMe, setMe as storeMe, rememberTrip, getUserName, setUserName, isDevMode } from "../lib/device.js";
+import { getMe, setMe as storeMe, rememberTrip, forgetTrip, getUserName, setUserName, isDevMode } from "../lib/device.js";
 import { fmtRange, tripStatus } from "../lib/dates.js";
 import Plan from "../components/Plan.jsx";
 import Checklist from "../components/Checklist.jsx";
@@ -114,6 +114,11 @@ export default function TripPage({ tripId, view }) {
     document.title = `${trip.title} · Pocket Trip Planner`;
   }, [trip]);
 
+  // A trip that's gone, or whose link was switched off (id retired in firestore.rules), leaves this device's list.
+  const switchedOff = tripState === "error:permission-denied";
+  const gone = tripState === "missing" || switchedOff;
+  useEffect(() => { if (gone) forgetTrip(tripId); }, [gone, tripId]);
+
   const hasTrip = !!trip;
   useEffect(() => {
     const el = titleRef.current;
@@ -167,6 +172,7 @@ export default function TripPage({ tripId, view }) {
   if (!trip) {
     if (tripState === "setup") return <Message>⚙️ Setup needed: paste your Firebase config into <b>src/firebase-config.js</b>.</Message>;
     if (tripState === "missing") return <Message>This trip doesn't exist. Check that the link is complete.</Message>;
+    if (switchedOff) return <Message>🔒 This trip link has been switched off. Ask the person who organises the trip for the new link.</Message>;
     if (tripState.startsWith("error:")) return <Message>Couldn't open this trip ({tripState.slice(6)}).</Message>;
     return <Message>Loading trip…</Message>;
   }

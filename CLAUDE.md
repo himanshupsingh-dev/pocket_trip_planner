@@ -25,6 +25,8 @@ Lockfile gotcha: npm on Windows (with `node_modules` present) drops `@emnapi/cor
 
 `firestore.rules` is **not** deployed by any script — after changing it, the rules must be pasted into Firebase console → Firestore → Rules → Publish.
 
+Leaked trip link: `node scripts/move-trip.mjs <tripId> [--dry-run]` copies the trip doc plus its `expenses`, `days` and `checklist` to a new `newTripId()` id (through the public web config and rules, with no admin key) and prints the new link. Then add the old id to `retired()` in `firestore.rules` and publish, which denies every read and write under it; the app shows "link switched off" and drops it from that device's list (`forgetTrip()`). Never commit a live trip's new id: the repo and the built site are public. The old `kerala-2026` id is retired this way.
+
 ## Hard constraints
 
 - **Everything must stay free.** Firebase Spark plan only (Firestore Standard edition; no Storage, Functions, phone auth or anything that needs Blaze), free GitHub Pages hosting. Don't add services or dependencies that need billing.
@@ -45,7 +47,7 @@ Firestore cannot store nested arrays, so groups and categories are arrays of obj
 
 **Trip object pipeline:** raw doc fields → `normalizeTrip(id, data)` in `src/trips/index.js` → the `trip` object every component receives. After normalization `trip.categories` is an ordered `{name: icon}` object and defaults are filled in — components rely on this, so always go through `normalizeTrip`.
 
-**Built-in templates** (`src/trips/*.js`, registered in `src/trips/index.js`): a template's `id` is its trip id. The first time a template trip is opened and Firestore reports the doc missing, `seedTrip()` writes the trip, its days and seed expenses in one batch; afterwards the database is the source of truth and the template file is no longer read for that trip. Until Firestore answers (or when unconfigured), `TripPage` renders the template directly. Editing a template file does not change an already-seeded trip.
+**Built-in templates** (`src/trips/*.js`, registered in `src/trips/index.js`; the list is currently empty): a template's `id` is its trip id. That id is public, because it's in the bundle and Home lists unseeded templates to every visitor, so anyone with the site URL can open and edit a template trip. Never use a template for a real group trip; that is how `kerala-2026` leaked. The first time a template trip is opened and Firestore reports the doc missing, `seedTrip()` writes the trip, its days and seed expenses in one batch; afterwards the database is the source of truth and the template file is no longer read for that trip. Until Firestore answers (or when unconfigured), `TripPage` renders the template directly. Editing a template file does not change an already-seeded trip.
 
 **TripPage** owns all live subscriptions (`watchTrip`, `watchList(…,"expenses")`, `watchList(…,"days")`, `watchList(…,"checklist")`) and a single `sheet` state (`{type: "exp"|"who"|"trip"|"share"|"day"|"budget"|"task", …}`) that decides which bottom sheet (`components/*Sheet.jsx`) is open. Editing is enabled only when `canEdit = isConfigured && dbTrip`.
 
