@@ -1,9 +1,10 @@
 // Trips live in the database and are created in the app (＋ New trip).
 // Built-in templates below are copied into the database the first time someone opens them.
-import kerala2026 from "./kerala-2026.js";
+// A template's id is public (it's in the built site and listed on everyone's home page), so
+// never use one for a real group trip — real trips need an unguessable id from newTripId().
 import { round2, toPaise } from "../lib/money.js";
 
-const TEMPLATES = [kerala2026];
+const TEMPLATES = [];
 
 export const getTemplate = (id) => TEMPLATES.find((t) => t.id === id) || null;
 export const templateList = () => TEMPLATES;

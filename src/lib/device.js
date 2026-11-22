@@ -33,6 +33,13 @@ export function rememberTrip({ id, title, emoji, subtitle, startDate, endDate })
   write(TRIPS_KEY, JSON.stringify([{ id, title, emoji, subtitle, startDate, endDate }, ...rest].slice(0, 50)));
 }
 
+/** Drop a trip that no longer opens (missing, or its link was switched off) from this device's list. */
+export function forgetTrip(id) {
+  const all = knownTrips();
+  const rest = all.filter((t) => t.id !== id);
+  if (rest.length !== all.length) write(TRIPS_KEY, JSON.stringify(rest));
+}
+
 export const getMe = (tripId) => read(meKey(tripId));
 export const setMe = (tripId, memberId) => write(meKey(tripId), memberId);
 

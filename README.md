@@ -36,8 +36,7 @@ src/
     WhoSheet.jsx                    "Who are you?" picker (remembered per trip, per device)
     Sheet.jsx, TabBar.jsx
   trips/
-    index.js              built-in trip templates, default categories, trip helpers
-    kerala-2026.js        Kerala trip template (copied into the database on first open)
+    index.js              built-in trip templates (none at the moment), default categories, trip helpers
   lib/
     db.js                 Firestore reads/writes
     money.js              split maths, settle-up, budget summary
@@ -45,6 +44,7 @@ src/
     device.js             things remembered on this device (your trips, who you are)
   firebase-config.js      ← your Firebase keys go here
 firestore.rules           database security rules
+scripts/move-trip.mjs     move a trip to a new link if its link leaked
 .github/workflows/deploy.yml   builds & publishes to GitHub Pages on every push
 ```
 
@@ -88,5 +88,5 @@ In ~1 minute the site is live at **`https://<your-username>.github.io/pocket_tri
 - **New trips** are created in the app; nothing to code. Use **🔗 Invite** inside the trip to send its link.
 - **Adding someone later:** add their name in **⚙️ Edit trip → Members**, then send them the link.
 - **Removing a member** is blocked while they're part of an expense with an amount; change those expenses first.
-- **Kerala** is a built-in template: the first time anyone opens it, its itinerary, members and 5 hotel rows are copied into the database. From then on it's edited in the app like any other trip.
+- **A trip link reached the wrong people?** Run `node scripts/move-trip.mjs <trip-id>`. It copies the trip to a new private link and prints that link. Then add the old id to `retired()` in `firestore.rules` and publish the rules, so the old link stops working. Send the new link only to the group.
 - **Estimates** are per category (Hotel, Fuel, Food, …), set on the **Budget** tab. *Actual* is the sum of all expenses.
